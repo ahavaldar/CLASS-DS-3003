@@ -1,0 +1,137 @@
+---
+title: "Assignment 10 - plotly & Uncertainty"
+author: "Group 2, Akhil Havaldar (ash2sfp)"
+date: "Due Date: 11:59pm, Mar 20"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+## Group Homework 
+
+- You will work with your group to complete this assignment.
+
+- Upload your `html` file on [RPubs](https://rpubs.com) and include the link when you submit your submission files on Collab. 
+
+- Submit your group's shared `.Rmd` AND "knitted"`.html` files on Collab.
+
+- Note that this `html` file is now uploaded on [RPubs](https://rpubs.com/DS3003/A11).
+
+## Group Homework
+
+- Your "knitted .html" submission must be created from your "group .Rmd" but be created on your own computer.
+    
+- Confirm this with the following comment included in your submission text box: **"Honor Pledge: I have recreated my group submission using using the tools I have installed on my own computer"**
+    
+- Name the files with a group name and YOUR name for your submission.
+
+- *Each group member must be able to submit this assignment as created from their own computer. If only some members of the group submit the required files, those group members must additionally provide a supplemental explanation along with their submission as to why other students in their group have not completed this assignment.*
+
+# Part 1 
+
+## Part 1: Instruction 
+
+- Use the `EuStockMarkets` data that contains the daily closing prices of major European stock indices: Germany DAX (Ibis), Switzerland SMI, France CAC, and UK FTSE. Then, create multiple lines that show changes of each index's daily closing prices over time.
+
+- Please use function `gather` from package `tidyr` to transform the data from a wide to a long format. For more info, refer to our lecture materials on dataformats (i.e., `DS3003_dataformat_facets_note.pdf`, `DS3003_dataformat_facets_code.rmd`, or `DS3003_dataformat_facets_code.html`
+
+- Use function `plot_ly` from package `plotly` to create a line plot. 
+
+## Part 1: Example 
+
+- see the `html` file.
+
+
+##  Part 1: Results
+
+```{r, message=FALSE}
+library(tidyr) # load tidyr package
+library(plotly) # load plotly package
+
+data(EuStockMarkets) # load EuStockMarkets
+dat <- as.data.frame(EuStockMarkets) # coerce it to a data frame
+dat$time <- time(EuStockMarkets) # add `time` variable
+
+# add your codes
+longdat <- gather(dat, key = "stock", value= "value", DAX:FTSE)
+plot_ly(x=longdat$time, y = longdat$value, type = 'scatter', mode='lines', color = longdat$stock)%>%
+  layout(title='Daily Closing Prices', xaxis=list(title='Year'), yaxis = list(title='Price'))
+```
+
+## Part 2: Code
+
+```{r}
+library(foreign)
+library(boot)
+library(ggplot2)
+
+scsdata <- read.spss("SCS_QE.sav", to.data.frame = TRUE)
+
+b.stat <- function(data, i)
+{
+   b.dat <- data[i ,]
+   out.lm <- lm(mathpre ~ mars, b.dat)
+   predict(out.lm, data.frame(mars=scs2$mars))   
+}
+
+scs2 <- scsdata # subset of the first 100 cases
+b.out <- boot(scs2, b.stat, R = 2000) # R = num of replications
+
+boot.ci(b.out, index = 1, type = 'perc') # 95% CI for the first observation
+
+b.ci <- t(sapply(1:nrow(scs2), function(x) boot.ci(b.out, index = x, type = 'perc')$percent))[, 4:5]
+dimnames(b.ci) <- list(rownames(scs2), c('lower', 'upper'))
+
+# kable(head(b.ci, 4))
+
+scs4 <- cbind(scs2, b.ci) # combine two datasets
+p <- ggplot(scs4, aes(x=mars, y=mathpre)) + geom_point(alpha=0.2) + labs(x = 'Math Anxiety Score', y = 'Math Achievement Score', title = "Math Anxiety vs Math Achievement with Confidence Interval") + theme_bw() + 
+        geom_smooth(method='lm', formula= y~x, se = FALSE) +
+        geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.3, fill="#69b3a2")
+```
+
+## Part 2: Results
+
+``` {r}
+
+p
+
+```
+
+# Part 3
+
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+covids <- read_csv("WHO-COVID-19-global-table-data.csv")
+focus <- c("South Africa", "Ethiopia",
+                                 "Kenya", 
+                   "Haiti", "Brazil", "Peru",
+                   "Iraq", "Jordan", "Morocco", 
+                   "France", "Turkey", "Italy", 
+                   "India", "Nepal", "Bangladesh",
+                   "Japan", "Australia", "Singapore")
+
+covids %>% filter(Name %in% focus) %>% mutate(rate = `Deaths - cumulative total`/`Cases - cumulative total`) 
+
+covids2 <- covids %>% filter(Name %in% focus) %>% 
+  mutate(rate = `Deaths - cumulative total`/`Cases - cumulative total`, SE = sqrt(rate*(1-rate)/`Cases - cumulative total`))
+
+names(covids2)[2] <- "region"
+
+plot <- ggplot(covids2, aes(x=rate, y=Name)) + geom_col() + theme_bw() +
+  xlab('WHO: # Reported Deaths / # Reported Cases') + 
+  geom_errorbar(aes(xmin=rate-1.96*SE, xmax=rate+1.96*SE), width=.2)+facet_grid(~region, scale="free")
+```
+# Graph
+```{r}
+plot
+```
+
+
+- One of the group members will **present R codes and plots** for Part 3 in class on **Mar. 21 (Mon)**.  Also, if you're a presenter, please bring your laptop so that you can share your screen on zoom for the presentation.
+

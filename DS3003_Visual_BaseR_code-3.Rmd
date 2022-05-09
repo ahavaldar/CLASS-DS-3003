@@ -1,0 +1,406 @@
+---
+title: "DS3003: Examining Data with Plots"
+subtitle: "R codes"
+author: "Youmi Suk"
+date: "1. 24. 2022"
+output:
+     html_document:
+          toc: TRUE
+          toc_depth: 4
+          toc_float: true
+          toc_collapsed: true
+          theme: journal
+          code_folding: show
+---
+
+<!--- Change font size for headers --->
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, comment=NA)
+knitr::opts_knit$set(global.par=TRUE, html.table.attributes = '')
+```
+
+```{r, include=FALSE}
+par(mar=c(2.1,2.1,.5,1.5), mgp=c(1.3,.3,0), tck=-0.01)
+```
+
+## Read income data
+
+```{r}
+# ::::: read income data :::::
+incex <- read.table('/Users/youmisuk/Desktop/DS3003/W1 - Syllabus & R intro/income_exmpl.dat', header = T, sep = "\t")
+summary(incex)
+
+# change order of factor levels
+incex$occ <- factor(incex$occ, levels = c('low', 'med.', 'high'))
+incex$edu <- factor(incex$edu, levels = c('low', 'med.', 'high'))
+incex$sex <- factor(incex$sex, levels = c('m', 'f'), labels = c('male', 'female'))
+
+attach(incex) # attach data frame (facilitates access to variables)
+```
+
+## Barplot
+
+### - Simple barplots and pie chart
+```{r}
+tab <- table(occ, sex)   # table we want to plot
+tab
+
+par(mfcol = c(2,2))   # set up multiple frames for plotting (2 rows, 2 columns; filled by columns)
+op <- par(mar = c(4.5, 4, 3, 0))  # change the margin of the plot (see help(par))
+                                  # old parameter values are stored under "op"
+barplot(tab[, 1], xlab = 'Occupational status', ylab = 'Frequency', 
+        col = c('grey90', 'grey60', 'grey30'), main = 'Men')
+barplot(tab[, 2], xlab = 'Occupational status', ylab = 'Frequency', 
+        col = c('grey90', 'grey60', 'grey30'), main = 'Women')
+par(mar = c(2, 1, 2, 0))
+pie(tab[, 1], col = c('grey90', 'grey60', 'grey30'), main = 'Men')
+pie(tab[, 2], col = c('grey90', 'grey60', 'grey30'), main = 'Women')
+par(op)   # sets parameter values back to old values (ie margins as before)
+```
+
+### - Stacked barplot
+```{r, fig.height=4, fig.width=8}
+par(mfrow = c(1, 2))  # new multiple frame plot (1 row, 2 columns)
+barplot(tab, xlab = 'gender', ylab = 'Frequency', 
+        col = c('grey90', 'grey60', 'grey30'), main = 'Occupational status')
+text(rep(.7, 3), (cumsum(c(0, tab[-3, 1])) + cumsum(tab[, 1]))/2, 
+     dimnames(tab)$occ, col = c('black', 'white', 'white'))
+text(rep(1.9, 3), (cumsum(c(0, tab[-3, 2])) + cumsum(tab[, 2]))/2, 
+     dimnames(tab)$occ, col = c('black', 'white', 'white'))
+ptab <- prop.table(tab, 2) 
+barplot(ptab, xlab = 'gender', ylab = 'Frequency', 
+        col = c('grey90', 'grey60', 'grey30'), main = 'Occupational status')
+text(rep(.7, 3), (cumsum(c(0, ptab[-3, 1])) + cumsum(ptab[, 1]))/2, 
+     dimnames(ptab)$occ, col = c('black', 'white', 'white'))
+text(rep(1.9, 3), (cumsum(c(0, ptab[-3, 2])) + cumsum(ptab[, 2]))/2, 
+     dimnames(ptab)$occ, col = c('black', 'white', 'white'))
+
+?text
+```
+
+### - Frequency tables & frequency distribution
+```{r}
+head(f <- table(age))      # simple frequency table of age
+                       # putting the assignment into parentheses assigns & 
+                       # simultan. prints the result of expression on the screen
+head(p <- f / sum(f))      # relative distribution (proportions)
+head(p <- prop.table(f))   # alternative way for getting proportions: prop.table()
+head(cf <- cumsum(f))      # cumulative frequencies
+head(cp <- cumsum(p))      # cumulative proportions
+
+# create a complete frequency/distribution table using column-bind (cbind()) 
+# cbind(freq = f, prop = p, cum.freq = cf, cum.prop = cp)  
+head(cbind(freq = f, prop = p, cum.freq = cf, cum.prop = cp), 10)
+```
+
+```{r, fig.height=4, fig.width=8}
+# ::::: write a simple function producing a complete frequency table  :::::
+freq.tab <- function(x)
+{
+   # produces a frequency table for a vector x
+   f <- table(x)
+   p <- prop.table(f)
+   cbind(freq = f, prop = p, cum.freq = cumsum(f), cum.prop = cumsum(p)) 
+}  
+
+# freq.tab(age)
+head(freq.tab(age), 10)
+
+# ::::: frequency distribution of "age" :::::
+# by defining "age" as factor plot() produces a strip chart
+# the arguments "space" controls the space between bars
+plot(as.factor(age), space = 2, ylab = 'Frequency', xlab = 'Age',
+     main = 'Age Distribution')
+```
+
+
+## Histogram
+
+```{r}
+# ::::: creating grouped data from "age" :::::
+head(age5 <- cut(age, seq(15, 65, by = 5)), 20)    # cuts the data into 5y age groups
+head(age10 <- cut(age, seq(15, 65, by = 10)), 20)  # cuts the data into 10y age groups
+(tab5 <- table(age5))                      # frequency distribution of age5
+(tab10 <- table(age10))                    # frequency distribution of age10
+
+# use our freq.tab() function for investigating the frequency distribution
+# of the grouped data
+freq.tab(age5)
+freq.tab(age10)
+```
+
+```{r}
+# ::::: plot these data is using hist() :::::
+par(mfrow = c(2,2))
+# frequency plots
+hist(age, seq(15, 65, by = 5), xlab = 'Age', main = '', col = 'grey90')
+hist(age, seq(15, 65, by = 10), xlab = 'Age', main = '', col = 'grey90')
+# density plots (prob = T)
+hist(age, seq(15, 65, by = 5), xlab = 'Age', main = '', col = 'grey90', prob = T)
+hist(age, seq(15, 65, by = 10), xlab = 'Age', main = '', col = 'grey90', prob = T)
+```
+
+## Kernel Density Estimation
+
+```{r}
+# ::::: write our own function kden() :::::
+kden <- function(x, h, x.val = seq(min(x)-2*h, max(x)+2*h, length = 200)) {
+
+   # kernel density with uniform (rectangular) kernel
+   # calculates density at deliberately chosen values x.val
+   # x     ... numeric data vector
+   # h     ... bandwidth of uniform kernel
+   # x.val ... numeric vector of values at which the density should be estimated
+
+   x.val <- sort(unique(x.val))  # sorts the unique values of x
+   n <- length(x)                # number of observations
+
+   # define a kernel function dens.f() inside the kden() function
+   dens.f <- function(x.v) {             # fct. computes the density at x.v      
+      z <- (x.v - x) / h                 # standardization
+      d <- ifelse(z > -1 & z < 1, .5, 0) # computes kernel density, either .5 or 0
+      sum(d) / n / h                     # compute density
+   }
+   dens <- sapply(x.val, dens.f)
+   data.frame(x = x.val, y = dens)  # combine output into a data frame and returns it          
+}
+
+# compute the kernel density estimate for income with a bandwidth of 100 EUR
+den <- kden(incex$income, h = 100)  
+head(den, 10)
+den$x <- den$x - 100 # for a correct step function (use oexp to clearly see it)
+plot(den, type = 's', lwd = 3, xlab = 'Income', ylab = 'Density', 
+     main = 'Income Distribution')
+rug(incex$income, ticksize = .02)   # adds a "rug" plot
+
+# ::::: use built-in function in R: density() :::::
+plot(density(incex$income), main = 'Income Distribution')
+
+# combination of histogram and kernel density estimation
+hist(incex$income, prob = T, xlab = 'Income', main = 'Income Distribution')
+lines(density(incex$income), lwd = 3, col = 'red')
+```
+
+## Boxplots
+
+```{r}
+# ::::: computation of quantiles :::::
+quantile(age, prob = c(0, .25, .50, .75, 1))   # quartiles
+quantile(age, prob = seq(.0, 1, by = .2))      # quintiles
+quantile(age, prob = seq(.0, 1, by = 1/7))     # septiles
+quantile(age, prob = seq(.0, 1, by = .1))      # deciles
+```
+
+```{r, fig.height=4}
+par(mfrow=c(1,2))
+boxplot(age, horizontal = T, main="Age")
+boxplot(income, horizontal = T, main="Income")
+```
+
+```{r, fig.height=4, fig.width=12}
+boxplot(income ~ edu + sex, col = rep(c('blue', 'red'), each = 3), ylab = 'Income', names = c('male\nlow', 'male\nmed.', 'male\nhigh', 'female\nlow', 'female\nmed.', 'female\nhigh'), main = 'Income by gender and educational level')
+
+# boxplot with notches and variable width
+# notches indicate a 95% confidence interval for the median
+# the variable width of the boxes reflect differences in sample size
+boxplot(income ~ edu + sex, col = rep(c('blue', 'red'), each = 3), ylab = 'Income', names = c('male\nlow', 'male\nmed.', 'male\nhigh', 'female\nlow', 'female\nmed.', 'female\nhigh'), main = 'Income by gender and educational level', notch = T, varwidth = T)
+```
+
+
+## Quantile-comparison plots
+
+### (A) Comparison of densities
+
+```{r, fig.height=4, fig.width=10}
+# way 1
+curve(dnorm, -4, 4, lwd = 3, bty = 'L', ylab = 'Density', 
+   xlab = 'Standard Normal Distr. / Income (Standardized)')   # theoretical distribution (standard normal)
+lines(density(scale(incex$income)), col = 'red', lwd = 3, lty = 2)
+legend('topright', c('Income', 'Normal Distr.'), bty = 'n',
+   col = c('red', 'black'), lty = c(2, 1), lwd = 3)
+
+# way 2
+plot(density(scale(incex$income)), col = 'red', lwd = 3, lty = 2, xlim=c(-4, 4), ylim=c(0, 0.4), main="",
+  bty = 'L', ylab = 'Density', xlab = 'Standard Normal Distr. / Income (Standardized)')
+curve(dnorm, -4, 4, lwd = 3, add=T)   # theoretical distribution (standard normal)
+legend('topright', c('Income', 'Normal Distr.'), bty = 'n',
+   col = c('red', 'black'), lty = c(2, 1), lwd = 3)
+```
+
+### (B) Quantile-comparison plots
+
+#### my own function, qq
+
+```{r, fig.height=4}
+# ::::: writing our own function qq() :::::
+qq <- function(x, ...) 
+{
+   # computes empirical and normal quantiles for a numeric vector x
+
+   n <- length(x)        # number of observations
+   x <- sort(x)          # rank-ordered data
+   eq <- scale(x)        # standardized empirical quantiles
+   p <- (1:n - .5) / n   # cumulative proportions
+   tq <- qnorm(p)        # theoretical (normal) quantiles
+   
+   plot(tq, x, main = 'Quantile-Comparison Plot', ...)
+   lines(tq, mean(x) + tq * sd(x), lwd = 2)
+
+   invisible(data.frame(x = x, eq = eq, p = p, tq = tq))  # returns a data frame
+}
+
+qq.dat <- qq(income)
+head(qq.dat)      # first 6 quantiles
+tail(qq.dat)      # last 6 quantiles
+
+# QQ-plot with standardized empirical quantiles
+# NOTE: plots only differ in the scale of the y-axis
+plot(qq.dat$tq, qq.dat$eq)  
+abline(a = 0, b = 1)        # add reference line
+```
+
+#### qqPlot from package car
+```{r, fig.height=4, fig.width=12}
+par(mfrow=c(1,3))
+# ::::: use the qqPlot() function from the car library :::::
+library(car)
+qqPlot(income, col = 1, cex = .7)  
+qqPlot(income, col = 1, cex = .7, distribution = "chisq", df=3)  
+qqPlot(rchisq(1000, df=3), col = 1, cex = .7, distribution = "chisq", df=3)  
+```
+
+
+#### qqnorm
+
+```{r, fig.height=4}
+qqnorm(income)            # standard QQ-plot from the "stats" package
+```
+
+
+## Scatterplots
+
+### - Simple scatterplot of "age" and "occupational experience"
+
+- without and with jittering
+```{r, fig.width=10, fig.height=4}
+par(mfrow=c(1,3))
+# :::: simple scatterplot of "age" and "occupational experience" :::::
+par(mar = c(4.5, 4.5, 1, 1))
+plot(age, oexp, xlab = 'Age', ylab = 'Occupational Experience', cex = .4, pch = 16)
+plot(jitter(age), jitter(oexp), xlab = 'Age', ylab = 'Occupational Experience', 
+     cex = .4, pch = 16)   # with default jittering
+plot(jitter(age, factor = 3), jitter(oexp, factor = 3),    # more jittering: factor = 3
+     xlab = 'Age', ylab = 'Occupational Experience', cex = .4, pch = 16)
+
+```
+
+- changing the degree of transparency
+
+```{r, fig.width=10, fig.height=4}
+par(mfrow=c(1,3))
+for (i in c(0.2, 0.5, 0.8)) {
+  plot(jitter(incex$age, factor = 3), jitter(incex$oexp, factor = 3),
+       xlab = 'Age', ylab = 'Occupational Experience', cex = .4, pch = 16, 
+       col=rgb(red = 0, green = 0, blue = 0, alpha = i), main=paste("alpha =", i))
+}
+```
+
+```{r, fig.width=10, fig.height=4}
+library(scales)
+par(mfrow=c(1,3))
+for (i in c(0.2, 0.5, 0.8)) {
+  plot(jitter(incex$age, factor = 3), jitter(incex$oexp, factor = 3),
+       xlab = 'Age', ylab = 'Occupational Experience', cex = .4, pch = 16, 
+       col=alpha("black", i), main=paste("alpha =", i))
+}
+```
+
+
+### - Simple scatterplot of "occ" and "occupational experience"
+```{r, fig.width=10, fig.height=4}
+# for categorical variable (x-axis)
+plot(oexp, occ, 
+     xlab = 'Occupational Experience', ylab = 'Occupational Status',  
+     cex = .4, pch = 16)
+
+plot(oexp, occ, 
+     xlab = 'Occupational Experience', ylab = 'Occupational Status',  
+     cex = .4, pch = 16, yaxt = 'n')
+axis(2, 1:3, levels(occ))
+
+plot(jitter(oexp, factor = 3), jitter(as.numeric(occ), factor = 2), 
+     xlab = 'Occupational Experience', ylab = 'Occupational Status',  
+     cex = .4, pch = 16, yaxt = 'n')
+axis(2, 1:3, levels(occ))
+```
+
+```{r, fig.height=3}
+par(mfrow=c(1,2))
+plot(jitter(as.numeric(edu), factor = 2), jitter(as.numeric(occ), factor = 2), 
+     xlab = 'Educational Level', ylab = 'Occupational Status',  
+     cex = .4, pch = 16, xaxt = 'n', yaxt = 'n')
+axis(1, 1:3, levels(edu))
+axis(2, 1:3, levels(occ))
+
+boxplot(oexp ~ occ, data = incex, horizontal = T, 
+   xlab = 'Occupational Experience', ylab = 'Occupational Status')
+```
+
+### - Scatterplot-matrix
+```{r}
+plot(incex[, c('income', 'oexp', 'age', 'edu')], cex = .2)
+# from the "car"-package
+library(car)
+scatterplotMatrix(incex[, c('income', 'oexp', 'age', 'edu')], cex = .3)
+```
+
+### - Conditioning plots
+```{r}
+# coplot()
+coplot(income ~ oexp | edu, data = incex)
+coplot(income ~ oexp | edu * occ, data = incex, cex = .6)
+
+# xyplot() from the "lattice"-package
+library(lattice)
+xyplot(income ~ oexp, data = incex)
+xyplot(income ~ oexp | edu, data = incex)
+xyplot(income ~ oexp | edu * occ, data = incex, cex = .4)
+```
+
+### - Scatterplots with color and shape separators
+
+```{r}
+# color separator
+plot(incex$age, incex$oexp, xlab = 'Age', ylab = 'Occupational
+     Experience', cex = .4, pch = 16, col=c("red", "green")[as.numeric(sex)])
+legend('topleft', c('Male', 'Female'), bty = 'n',
+      col = c('red', 'green'), pch = c(16, 16))
+
+# shape separator
+plot(incex$age, incex$oexp, xlab = 'Age', ylab = 'Occupational
+     Experience', cex = .4, pch = c(1, 3)[as.numeric(sex)])
+legend('topleft', c('Male', 'Female'), bty = 'n', pch = c(1, 3))
+```
+
+### - 3-dim scatterplot
+```{r}
+cloud(income ~ oexp * sex, data = incex, col = as.numeric(sex)+1)
+
+detach(incex)   # detaches the attached data frame "incex"
+```

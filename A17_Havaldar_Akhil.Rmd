@@ -1,0 +1,201 @@
+---
+title: "Create-Your-Own-Plot Assignment (4 pts per presentation date)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: See below"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+runtime: shiny
+---
+
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+
+You will create your own plot(s) using datasets from presenters to support or argue against their argument. Please modify the given rmd file for your submission.
+
+1. Select two presentations on each presentation date: (i) one where you play a role as a peer reviewer and (ii) the other that you're interested in to draw plots on each presentation date. 
+
+2. You can use a different plot type, or modify the presenter's key plot.
+
+3. In your submission files, you should : 
+   - summarize each presentation (e.g., title, background, plot type).
+   - explain your plot(s) and modifications you've made.
+   - support or argue against each presenter's argument using your key plot. 
+
+4. In your submission files, you should include either of the following statements:
+
+   - "I pledge that I have neither given nor received help on this [examination/quiz/assignment]."
+   
+
+5. Add your RMD and HTML files to *Assignment Module*. 
+  
+
+# Assignment 17
+
+ - Due: 11:59pm on Apr 17 (Sunday)
+ - Add your RMD and HTML files (having plots for presentations on Apr 11 and Apr 13) to *A17: Your own plots* under *Assignment Module*. Thus, the max. points are 8 points. 
+ 
+## Create your own plots for two presentations on Apr 11 (4 pts)
+
+### Presentation 1: One where you work as a peer reviewer
+1) Summary
+- Sarah's presentation was on the relationship between urban population and air pollution. She used a dataset from Kaggle that contains information on the air quality index for top countries. One of the main plots she used to show this relationship was a scatter plot with a regression line. This plot showed a direct relationship between urban population and air quality index (consistent with the article she chose). She also used maps to show which countries had the highest/lowest air pollution index. 
+
+2) Plot
+```{r}
+library(readr)
+library(ggplot2)
+library(shiny)
+library(dplyr)
+library(gridExtra)
+library(maps)
+library(ggmap)
+library(tidyr)
+aq_byCity <- read.csv("AIR QUALITY INDEX _by cities_ - IQAir.csv", na.strings="-")
+aq_topCountries <- read.csv("AIR QUALITY INDEX- top countries.csv", na.strings="-")
+aq_topCountries$Population <- as.numeric(gsub(",", "", aq_topCountries$Population))
+df <- aq_byCity %>% separate(City, c("City", "Country"), sep=", ")
+
+
+world <- map_data("world")  # load world map
+df_merged <- left_join(world, aq_topCountries, by=c("region" = "Country.Region"))
+  # merge datasets
+
+
+map <- get_map(location = 'China', color="bw", zoom = 5)
+
+df_china <- df %>% filter(Country == "China")
+china.cities <- world.cities %>% filter(country.etc=="China")
+china.cities <- china.cities %>% filter(name %in% df_china$City)
+china.cities <- left_join(china.cities, df_china, by=c("name" ="City"))
+
+ggmap(map)+geom_point(data=china.cities, aes(x=long, y=lat, color=`X2021`, alpha=`pop`), size=4)+scale_alpha(range=c(0.15, 1))+labs(color="Air Quality\nIndex 2021", x="Longitude", y="Latitude", title="Air Quality Index & Population Size\nby China City", alpha="Population")+theme(plot.title=element_text(hjust=0.5))
+```
+3) Plot summary
+- After the presentation, I wanted to look at the map of pollution indices across Chinese cities. Sarah looked at both a map of the US and India, but I thought a map of China would be good since China is one of the world leading countries in terms of pollution. This graph also supports Sarah's and the article's point in that it shows the higher levels of population lead to more pollution. 
+
+
+### Presentation 2: Choose another one. 
+1) Summary
+- Connor's presentation was about finding the best ski resorts in Europe. The dataset he found contains information on country, resort, and numeric values describing the ski resort. He used various plots to show the of value of ski resorts in certain countries. He used scatter plots to graph specific resort values against their price.
+
+2) Plot
+```{r}
+library(plotly)
+ski<-read.csv("European_Ski_Resorts.csv")
+article_resorts<-c("Courmayeur / Chécrouit -​ Val Veny",	
+"Eggli-​La Videmanette-Gstaad-​Saanen-​Rougemont","St. Moritz - Corviglia",
+"St. Anton (Ski Arlberg)","Kitzbühel / Kirchberg (KitzSki)",
+"Crans-Montana","Laax-​Flims-​Falera","Lech (Ski Arlberg)",
+"Tignes - ​Val d'Isère","Megève-​Saint-Gervais","Courchevel (Les 3 Vallées)","Verbier (4 Vallées)","Zermatt - Matterhorn",
+"Cortina d'Ampezzo")
+ski_subest<-ski %>% filter(Resort %in% article_resorts)
+ski<-ski %>% select(-X)
+ski<-ski %>% mutate(Snowparks=as.factor(Snowparks),NightSki=as.factor(NightSki))
+ski<-ski %>% mutate(article=0)
+
+ski$article<-ifelse(ski$Resort%in%article_resorts,ski$article<-1,ski$article<-0)
+
+ski<-ski %>% mutate(article=as.factor(article))
+countries<-c("Switzerland","Italy","Austria","France")
+
+ski_article<-ski %>% filter(Country %in% countries)
+
+ski_article<-ski_article %>% mutate(ratio=TotalLifts/DayPassPriceAdult)
+
+
+shinyApp(
+  ui = fluidPage(
+  selectInput("s1", "Article:", choices=unique(ski_article$article), selected="0"),
+  plotOutput("ski")
+  ),
+  
+  server = function(input, output){
+    output$ski <- renderPlot({
+ggplot(ski_article[ski_article$article==input$s1,],aes(x=ratio,y=LiftCapacity,color=article))+geom_point()+
+  labs(title="Ratio of Price to Lifts vs Lift Capacity",x="Ratio of Price to Lifts",
+       y="Lift Capacity",fill="In Article")+guides(col=guide_legend("In Article"))+theme_minimal()
+      })}
+)   
+
+```
+3) Plot summary
+- I wanted to modify one of Connor's plots to show the ratio of price to lifts vs. the lift capacity instead of highest point. This correlation looks to be strong and positive indicating that a higher price to lifts ratio tends to be in resorts with high lift capacity. This makes sense as resorts with higher capacity tend to have larger facilities and more lifts. 
+
+## Create your own plots for two presentations on Apr 13 (4 pts)
+ 
+### Presentation 1: One where you work as a peer reviewer
+1) Summary
+- Laila's presentation was on the popularity of Taylor Swift songs. The data she found consists of variables such as album name, song name, popularity, length, etc. She created various plots to show how Swift's popularity has grown significantly over time for all her albums. By looking at statistics like danceability and acousticness she draws conclusions on song popularity and the popularity of Swift as a whole. 
+
+2) Plot
+```{r}
+ts <- read.csv("spotify_taylorswift.csv")
+ts <- na.omit(ts)
+ts$release_date <- as.Date(ts$release_date) 
+tsclean <- ts[-c(22, 36, 76, 77, 78), ]
+
+
+shinyApp(
+  ui = fluidPage(
+  selectInput("s2", "Album:", choices=unique(tsclean$album), selected="Taylor Swift"),
+  plotOutput("swift")
+  ),
+  
+  server = function(input, output){
+    output$swift <- renderPlot({
+ggplot() + geom_point(data = tsclean[tsclean$album==input$s2,], aes(x = tempo, y = popularity, color = album)) + labs(x = 'Tempo', y = 'Popularity', title = 'Tempo vs. Popularity of Taylor Swift Songs')+  theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45))
+      })}
+)   
+
+```
+3) Plot summary
+- For my plot I decided to modify Laila's last plot between acousticness and popularity. Instead, I wanted to look at tempo and popularity. The results are very neutral. It seems that every one of Swift's albums has songs that range widely in tempo. Among her albums, the songs receive similar popularity scores regardless of tempo indicating that tempo does not seem to be a good representation of why songs become popular. 
+
+### Presentation 2: Choose another one. 
+1) Summary
+- George's presentation was on the different music preferences in the world. Looking at Spotify as the source for songs, George found a dataset that had information on a song's title, artist, genre, year, country, bpm, energy, dance, dB, valence, speechiness, duration, and acousticness. In order to explore his question, he created plots that looked at these variables across different countries. 
+
+2) Plot
+```{r}
+songs <- read_csv("top50country.csv", show_col_types = FALSE)
+lapply(songs,class)
+songs <- na.omit(songs)
+
+
+
+shinyApp(
+  ui = fluidPage(
+  selectInput("s3", "Country:", choices=unique(songs$country), selected="world"),
+  plotOutput("song")
+  ),
+  
+  server = function(input, output){
+    output$song <- renderPlot({
+ggplot() + geom_point(data = songs[songs$country==input$s3,], aes(x = bpm, y = dnce, color = country)) + labs(x = 'BPM', y = 'Danceability', title = 'BPM vs. Danceability per Country')+  theme(plot.title=element_text(hjust=0.5), axis.text.x = element_text(angle = 45))
+      })}
+)   
+
+
+```
+3) Plot summary
+- For my plot, I wanted to look at if there is correlation between BPM and danceability per country. This should tell me whether or not higher beat music leads to more dancing among all the countries. After graphing, there seems to be no correlation between the two variables, and this trend is constant among the countries in the data set. Because of these results, I would look at other variables and see if those affect danceability. 

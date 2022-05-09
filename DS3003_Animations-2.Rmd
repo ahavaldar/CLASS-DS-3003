@@ -1,0 +1,261 @@
+---
+title: "Animations"
+author: "Youmi Suk"
+date: "4/1/2022"
+output:
+     html_document:
+          toc: TRUE
+          toc_depth: 4
+          toc_float: true
+          toc_collapsed: true
+          theme: journal
+          code_folding: hide
+---
+
+<!--- Change font size for headers --->
+<style>
+h1.title {
+  font-size: 28px;
+}
+h1 {
+  font-size: 22px;
+}
+h2 {
+  font-size: 18px;
+}
+h3 { 
+  font-size: 14px;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE, 
+                      fig.align="center", out.width="80%")
+```
+
+# Package `gganimate`
+
+## Deaths from Covid
+
+[Our World in Data](https://ourworldindata.org/) (OWID) is a very cool news
+organization that seeks to produce data driven reporting and knowledge 
+sharing. Their work provides an outstanding template for our course final 
+project. Their reporting is the kind of *Communicating WITH Data* that this 
+course tries to foster! Some of their most recent reporting on covid can be 
+found [here](https://ourworldindata.org/coronavirus#deaths-due-to-covid-19) and
+[here](https://ourworldindata.org/covid-deaths), and notice how they are 
+constantly making their data available! We'll remake [this plot from OWID](https://ourworldindata.org/covid-deaths#total-confirmed-deaths-how-rapidly-have-they-increased-compared-to-other-countries).
+
+## Initialization
+
+- Loading tidyverse and data
+  - Data is just an easy download from [OWID](https://ourworldindata.org/covid-deaths)!
+ 
+```{r data}
+library(tidyverse)
+library(readxl)
+
+OWID_covid <- read_excel("owid-covid-data.xlsx")
+
+OWID_covid
+```
+
+## Europe and North America
+
+- We restrict to countries in  Europe and North America which have population 
+greater than 10M people and have the largest number of deaths per day 
+*per capita*.
+
+```{r focus}
+focus <- OWID_covid %>% filter(population > 10000000) %>%
+  filter(location != 'World') %>%
+  filter(continent %in% c('Europe', 'North America')) %>%
+  mutate(per_capita_deaths = total_deaths/population) %>%
+  dplyr::select(location, per_capita_deaths) %>% #
+  # https://stackoverflow.com/questions/24237399/how-to-select-the-rows-with-maximum-values-in-each-group-with-dplyr
+  group_by(location) %>% top_n(n=1) %>% 
+  # https://dplyr.tidyverse.org/reference/arrange.html
+  arrange(-per_capita_deaths) %>%
+  # https://dplyr.tidyverse.org/reference/distinct.html
+  distinct()  
+  
+focus
+```
+
+## Covid Curves
+
+- We examine the number of deaths per 100,000 individuals in the population
+  for the European and North American countries with the 6 highest 
+  mortality rates.
+
+```{r static_plot}
+# https://www.displayr.com/r-date-conversion/
+OWID_covid$date <- as.Date(OWID_covid$date) # change date type.
+
+covid_per_capita_fig <- OWID_covid %>% 
+  filter(location %in% focus$location[1:6]) %>%
+  # http://www.sthda.com/english/wiki/ggplot2-line-types-how-to-change-line-types-of-a-graph-in-r-software
+  ggplot(mapping=aes(x=date, y=100000*new_deaths_smoothed/population,
+                     color=location, linetype=continent, group=location)) + 
+  geom_line() + theme_bw() + 
+  # https://stackoverflow.com/questions/52060601/ggplot-multiple-legends-arrangement
+  theme(legend.position="top", legend.title=element_blank(), 
+        legend.direction="horizontal", legend.box="vertical") +
+  labs(title="Covid Deaths Each Day Per 100,000 People in Countries", x="Date", y="Mortality rate")
+
+covid_per_capita_fig
+```
+
+
+## Animation
+
+- And now we watch these countries daily covid mortality rates over time
+  
+```{r animate}
+# https://www.datanovia.com/en/blog/gganimate-how-to-create-plots-with-beautiful-animation-in-r/
+library(gganimate)
+
+covid_per_capita_fig + geom_point() + transition_reveal(date)   
+# covid_per_capita_fig + geom_point(aes(group = seq_along(date))) + transition_reveal(date)   
+```
+
+
+# Package `plotly`
+
+## Covid Testing
+
+Continuing to use the [Our World in Data](https://ourworldindata.org/) (OWID) 
+[covid data](https://ourworldindata.org/covid-deaths), we will now add in
+data on [covid testing](https://ourworldindata.org/grapher/full-list-total-tests-for-covid-19).
+
+## Initialization
+
+- Loading tidyverse and data
+   - It turns out that the original covid data we downloaded 
+  (while having columns labeled as containing covid testing counts) did not 
+  actually include any data on covid testing (because all the entries were `NA`).
+   -  Data on covid testing is available from OWID and can be found [here](https://ourworldindata.org/grapher/full-list-total-tests-for-covid-19)!
+ 
+```{r}
+# print columns whose names contain "test".
+# covid testing data is actually just NA's in this file!
+OWID_covid[str_detect(colnames(OWID_covid), "test")]
+```
+
+```{r}
+OWID_covid_tests <- read_csv("full-list-total-tests-for-covid-19.csv")
+
+
+OWID_covid_tests <- OWID_covid_tests %>% 
+  rename(location=Entity, date=Day) %>% 
+  left_join(OWID_covid, by=c("location","date"))
+
+OWID_covid_tests
+```
+
+## Clean-up
+
+1. To examine the association between covid deaths and covid 
+   testing, we are going to create two variables: `per capita deaths` (i.e., total deaths / population)
+   and `per capita tests` (i.e., total tests / population).
+2. To make our figure render smoothly, the `frames` 
+   [feature of plotly](https://plotly.com/r/animations/) that we'll animate
+   our plot with needs each country to have data at every date being animated
+    - There cannot be any `NA`'s or the `frames` rendering system won't be able
+    to maintain the identity of the points and will track them incorrectly 
+    - We'll address this issue by first expanding the data to each date with the 
+    tidy `complete` function, and then forward and back filling all the `NA`'s 
+    within each country the tidy `group_by`, `fill`, and `ungroup` functions.
+3. The `frames` feature currently doesn't animate dates, so we'll filter our data 
+    after `2021-09-01` and enumerate the days starting at `2021-09-01` to present.  
+
+```{r cleaning}
+OWID_covid_tests2 <- OWID_covid_tests %>% 
+  select(location, total_tests.x, total_deaths, continent, population, date) %>%
+  mutate(per_capita_deaths = total_deaths/population,
+         per_capita_tests = total_tests.x/population) %>%
+  # https://stackoverflow.com/questions/48633460/r-fill-missing-dates-by-group
+  complete(location, date) %>%
+  group_by(location) %>%
+  fill(continent, .direction="down") %>%
+  fill(continent, .direction="up") %>%
+  # https://stackoverflow.com/questions/43332417/how-to-use-fill-by-function-with-na-approx-linear-interpolation-inside-dpl
+  mutate(per_capita_deaths=zoo::na.approx(per_capita_deaths, na.rm=FALSE)) %>%
+  mutate(per_capita_tests=zoo::na.approx(per_capita_tests,na.rm=FALSE)) %>%
+  fill(per_capita_deaths, per_capita_tests, population, .direction="down") %>%
+  fill(per_capita_deaths, per_capita_tests, population, .direction="up") %>%
+  ungroup(location) %>%
+   # https://www.displayr.com/r-date-conversion/
+  filter(date >= as.Date("2021-09-01")) %>% 
+  mutate(DaysSince2021_09_01 = date -as.Date("2021-09-01"))
+
+OWID_covid_tests2
+```
+
+## Animation
+
+The `frames` [feature of plotly](https://plotly.com/r/animations/) makes
+animating a scatter (or bubble) plot super easy!
+
+- Check out the "testing response" to the initial covid wave
+- And the subsequent "second wave" apparent in the data
+
+```{r plotly_animate}
+library(plotly)
+
+fig <- OWID_covid_tests2 %>% rename(`Days Since Sep 1, 2021`=DaysSince2021_09_01) %>%
+  plot_ly(
+    y = ~per_capita_deaths, 
+    x = ~per_capita_tests,
+    size = ~population, 
+    # https://stackoverflow.com/questions/38400343/r-plotly-smaller-markers-in-bubble-plot
+    marker = list(sizeref=0.03),
+    color = ~continent, 
+    # https://community.plotly.com/t/making-persistant-selections-in-plotlys-legend-for-animations/5640
+    # https://plotly.com/r/legend/#grouped-legend
+    frame = ~`Days Since Sep 1, 2021`, 
+    text = ~location, 
+    hoverinfo = 'text',
+    type = 'scatter',
+    mode = 'markers'
+   )
+
+# change x- and y- labels
+fig %>% layout(xaxis=list(title='Per Capita Tests'), 
+                yaxis=list(title='Per Capita Deaths'))
+```
+
+
+```{r plotly_scale}
+# change the scale. https://plotly.com/r/axes/
+fig %>% layout(xaxis=list(type = "log", title="Per Capita Tests"), 
+                       yaxis=list(type = "log", title="Per Capita Deaths")) 
+```
+
+
+# Utilized Resources
+
+## Data
+
+- [Our World in Data](https://ourworldindata.org/) 
+  - [covid deaths](https://ourworldindata.org/covid-deaths)
+  - [covid testing](https://ourworldindata.org/grapher/full-list-total-tests-for-covid-19)
+  - [covid data](https://ourworldindata.org/coronavirus#deaths-due-to-covid-19)
+
+## Plotly
+- [Plotly Animations](https://plotly.com/r/animations/) 
+  - [`animation_opts`](https://plotly.com/r/cumulative-animations/)
+  - [1easing`](https://github.com/plotly/plotly.js/blob/master/src/plots/animation_attributes.js)
+- [Legend/Animation](https://community.plotly.com/t/making-persistant-selections-in-plotlys-legend-for-animations/5640)
+  - [`legendgroup`](https://plotly.com/r/legend/#grouped-legend)
+- [Axis Labels](https://plotly.com/r/text-and-annotations/)
+- [Axis Limits](https://plotly.com/r/axes/#manual-ranges)
+
+## One-Off's
+- [forward fill](https://stackoverflow.com/questions/48633460/r-fill-missing-dates-by-group)
+- [linear interpolation](https://stackoverflow.com/questions/43332417/how-to-use-fill-by-function-with-na-approx-linear-interpolation-inside-dpl)
+- [date conversions](https://www.displayr.com/r-date-conversion/)
+
+
+

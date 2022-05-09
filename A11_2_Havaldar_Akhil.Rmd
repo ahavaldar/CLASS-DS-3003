@@ -1,0 +1,137 @@
+---
+title: "Assignment 11 - Shiny"
+author: "Group 2, Akhil Havaldar (ash2sfp)"
+date: "Due Date: 11:59pm, Mar 27"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+runtime: shiny    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+library(knitr)
+library(tidyverse)
+library(plotly)
+library(foreign)
+library(ggplot2)
+library(rsconnect)
+library(shiny)
+```
+
+# Group Homework 
+
+- You will work with your group to complete this assignment.
+
+- Upload your Shiny app on [ShinyApps.io](https://www.shinyapps.io).
+
+- Submit your group's shared `.Rmd` AND your URL (https://XXXXX.shinyapps.io/XXXXX) on Collab.
+
+- Confirm this with the following comment included in your submission text box: **"Honor Pledge: I have recreated my group submission using using the tools I have installed on my own computer"**
+    
+- Name the files with a group name and YOUR name for your submission.
+
+- One of the group members will **present R codes and plots for Parts 1 and 2** in class on **Mar. 28 (Mon)**. Please e-mail the instructor if you're a presenter by 11:59pm, Mar. 27. Also, if you're a presenter, please bring your laptop so that you can share your screen on zoom for the presentation.
+
+# Part 1
+
+- First, get the latest data from from [https://covid19.who.int/info?openIndex=2](https://covid19.who.int/info?openIndex=2).
+      
+   - The file should likely be named "WHO-COVID-19-global-table-data.csv"
+      
+   - Don't use the data for Group Assignment 10. It may not be the most recent data. 
+
+- Create a subset including 3 countries per `WHO region` (Africa, Americas, Eastern Mediterranean, Europe, South-East Asia, Western Pacific). You can choose any three countries within each `WHO region` to compare the mortality rate (`mutate(rate = "Deaths - cumulative total"/"Cases - cumulative total")`). The selected countries can be the same as those for Group Assignment 10.
+
+- Create a shiny app to produce bar plots (with error bars), along with the control type of `selectInput()`.
+
+     - You need to use `selectInput()` in the `ui` to select one level from the `WHO region` variable (with 6 levels: Africa, Americas, Eastern Mediterranean, Europe, South-East Asia, Western Pacific). 
+     
+     - Your output should be a barplot of mortality rates with error bars from three countries in the selected region. 
+
+- Example: https://youmi.shinyapps.io/A11examplePart1/
+
+```{r}
+library(dplyr)
+covids <- read_csv("WHO-COVID-19-global-table-data.csv")
+focus <- c("South Africa", "Ethiopia", "Kenya", 
+                   "Haiti", "Brazil", "Peru",
+                   "Iraq", "Jordan", "Morocco", 
+                   "France", "Turkey", "Italy", 
+                   "India", "Nepal", "Bangladesh",
+                   "Japan", "Australia", "Singapore")
+c <- covids %>% filter(Name %in% focus) %>% 
+  mutate(rate = `Deaths - cumulative total`/`Cases - cumulative total`, SE = sqrt(rate*(1-rate)/`Cases - cumulative total`))
+
+```
+
+``` {r}
+
+shinyApp(
+  ui = fluidPage(
+  selectInput("s1", "Region:", choices=unique(c$`WHO Region`), selected="Africa"),
+  plotOutput("countryplot")
+  ),
+  
+  server = function(input, output){
+    output$countryplot <- renderPlot({
+    ggplot(c[c$`WHO Region`==input$s1,], aes(x=rate, y=Name)) + geom_col() + theme_bw() +
+  xlab('Mortality Rate') + 
+  geom_errorbar(aes(xmin=rate-1.96*SE, xmax=rate+1.96*SE), width=.2) + coord_flip()
+      })}
+)   
+
+```
+
+
+# Part 2
+
+- Use a dataset that is available in data repositories (e.g., [kaggle](https://www.kaggle.com/datasets)). But don't use the datasets you used for your previous assignments.
+
+- Briefly describe the dataset you're using for this assignment (e.g., means to access data, context, sample, variables, etc...)
+  
+   + *describe your data.*
+   
+- Select *two* continuous variables (denoted as "A" and "B") 
+
+- Create an interactive scatterplot between "A" and "B" with a loess line using Shiny app. Please refer to lecture notes `DS3003_localreg_loess_note.pdf`, `DS3003_localreg_loess_code.rmd`, and `DS3003_localreg_loess_code.html` 
+
+- You need to create two input variables for loess regression. 
+
+    - One input variable is the degree with values of 0, 1, and 2.
+    - The other input variable is the span value ranging from 0.2 to 0.9.
+   
+- You can choose appropriate control types from [Widget gallery](https://shiny.rstudio.com/gallery/widget-gallery.html).
+     
+
+
+- The data can be found here https://www.kaggle.com/datasets/mathchi/hitters-baseball-data. The data set contains information from the 1986 and 1987 MLB season on certain statistics for hitters. For this regression, we are focusing on a loess regression between home runs hit and walks, to see if more powerful hitters were more likely to be walked during a game. 
+```{r}
+library(readr)
+base <- read_csv("Hitters.csv")
+
+
+inputPanel(
+  selectInput("degree", label = "Degree:",
+              choices = seq(0, 2, 1), selected = 1),
+  
+  sliderInput("span", label = "Span:",
+              min = 0.2, max = 0.9, value = 0.2, step = 0.1)
+)
+
+renderPlot({
+  plot(HmRun ~ Walks, data = base, cex = .4, xlab = 'Walks', 
+     ylab = 'Home Runs', main = 'Hitter Loess Regression')  
+  x.val <- seq(0, 110, by = 1)
+  out.lss1 <- loess(HmRun ~ Walks, data = base, span = as.numeric(input$span), degree = as.numeric(input$degree))
+  y.pred <- predict(out.lss1, data.frame(Walks = x.val))
+  lines(x.val, y.pred, col = 'blue', lwd = 2)
+})
+
+```
+
+- There seems to be a slight positive relationship between home runs and walks. This can be seen with the loess line, and the location of the scatter points. As the degree increases, the loess line becomes less smooth. This is the case because you are changing the degree of the polynomial used to estimate the loess line. As the span value increases, the line becomes smoother. This happens because the size of the neighborhood that is used in the loess line is larger than before. 
+

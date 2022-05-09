@@ -1,0 +1,264 @@
+---
+title: "Create-Your-Own-Plot Assignment (4 pts per presentation date)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: See below"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+runtime: shiny
+---
+
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+
+You will create your own plot(s) using datasets from presenters to support or argue against their argument. Please modify the given rmd file for your submission.
+
+1. Select two presentations on each presentation date: (i) one where you play a role as a peer reviewer and (ii) the other that you're interested in to draw plots on each presentation date. 
+
+2. You can use a different plot type, or modify the presenter's key plot.
+
+3. In your submission files, you should : 
+   - summarize each presentation (e.g., title, background, plot type).
+   - explain your plot(s) and modifications you've made.
+   - support or argue against each presenter's argument using your key plot. 
+
+4. In your submission files, you should include either of the following statements:
+
+   - "I pledge that I have neither given nor received help on this [examination/quiz/assignment]."
+   - "I have [received/given] help on this assignment [to/from] [student]; the nature of this support was [elaborate]."
+   
+
+5. Add your RMD and HTML files to *Assignment Module*. 
+  
+
+# Assignment 19
+
+ - Due: 11:59pm on May 1 (Sunday)
+ - Add your RMD and HTML files (having plots for presentations on Apr 27) to *A19: Your own plots* under *Assignment Module*. 
+ 
+## Create your own plots for two presentations on Apr 27 (4 pts)
+ 
+### Presentation 1: One where you work as a peer reviewer
+1) Summary
+-  Kent's presentation was on the topic of mass incarceration and if it is beneficial for improving public safety. He is arguing with the article saying that mass incarceration does not improve public safety. The article he chose goes over why this is a pressing issue, and lists possible solutions to this problem. To support his argument, Kent produces maps of different crime rates, barplots of crime rates, and using time series data to show incarcerations over time.  
+
+2) Plot
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(shiny)
+library(stringr)
+library(plotly)
+data = read.csv("crime_and_incarceration_by_state.csv")
+data1 <- data %>%
+  mutate(Incarceration_Rate = (prisoner_count/state_population) *100000)%>%
+  mutate(Violent_Crime_Rate = (violent_crime_total/state_population)* 100000)%>%
+  mutate(Murder_Rate = (murder_manslaughter/state_population)* 100000)%>%
+  mutate(Robbery_Rate = (robbery/state_population)* 100000)%>%
+  mutate(Assault_Rate = (agg_assault/state_population)* 100000)
+# Select Variables of interest
+data1 <- data1[, -c(2, 4:17)]
+data1$jurisdiction <- tolower(data1$jurisdiction)
+data1 <- na.omit(data1)
+
+
+ui <- fluidPage(
+  titlePanel("Incarceration Rates"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput(inputId = "x", label = "X-axis:", choices = data1$jurisdiction, selected = "Alabama")
+    ),
+    mainPanel(
+      plotOutput(outputId = "box")
+    )
+  ),
+)
+
+server <- function(input, output) {
+  output$box <- renderPlot(
+    ggplot() + geom_boxplot(data = data1[data1$jurisdiction==input$x,], aes(x=input$x, y=Incarceration_Rate))+labs(x='State', title = 'Boxplot of Incarceration Rates')
+  )
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+3) Plot summary
+- I created a plot to look at the boxplot summary of incarceration rates for each state. From this plot we can see the different levels, outliers, and ranges of incarceration for each state. With this info, policy efforts can be made to focus on the states with extremely high incarceration rates since the article mentioned that it would be best if incarceration rates were lowered across the country.
+
+
+### Presentation 2: Choose another one. 
+1) Summary
+- Peter's presentation was on which cities are the healthiest in the world. In order to determine this, he found a dataset on Kaggle that has information on variables that factor into the happiness of a country. To show which variables played an important role in determining happiness, he created line plots and bar plots, and looked at the top 10 variables for each country. All of these graphs did a good job proving his point in conjunction with his article. 
+
+2) Plot
+```{r}
+library(knitr)
+library(tidyverse)
+library(dplyr)
+library(plotly)
+library(ggplot2)
+library(foreign)
+library(DT) # for displaying data in table format
+# library(summarytools)
+library(gridExtra)
+library(shiny)
+library(shinythemes)
+library(forcats)
+rank_10 <- 1:10
+cities_10 <- c("Copenhagen", "Okinawa", "Monte Carlo", "Vancouver", "Melbourne", "New York", "Jonkoping", "Havana", "Singapore", "Napa, CA")
+reasons_10 <- c("Happiness", "Longevity", "Low Infant Mortality", "Clean Air", "Livability", "Anti-Smoking Laws", "Elderly Care", "Preventative Medicine", "Healthcare System", "CNN's Choice by Users")
+CNN_top_10 <- cbind(rank_10, cities_10, reasons_10)
+
+health <- read.csv("healthy_lifestyle_city_2021.csv", check.names=FALSE)
+health$`Cost of a bottle of water(City)`<-gsub("Â£","",as.character(health$`Cost of a bottle of water(City)`)) # one for windows
+health$`Cost of a bottle of water(City)`<-gsub("£","",as.character(health$`Cost of a bottle of water(City)`)) # one for apple idk
+health$`Cost of a bottle of water(City)`<-gsub("aa","",as.character(health$`Cost of a bottle of water(City)`))
+health$`Cost of a monthly gym membership(City)`<-gsub("Â£","",as.character(health$`Cost of a monthly gym membership(City)`))
+health$`Cost of a monthly gym membership(City)`<-gsub("£","",as.character(health$`Cost of a monthly gym membership(City)`))
+health$`Obesity levels(Country)`<-gsub("%","",as.character(health$`Obesity levels(Country)`))
+
+health[, c(3,4,5,7,8,12)] <- sapply(health[, c(3,4,5,7,8,12)], as.numeric)
+names(health)[names(health) == "Sunshine hours(City)"] <- "Sunshine hours"
+names(health)[names(health) == "Cost of a bottle of water(City)"] <- "Cost of bottled water (Pounds)"
+names(health)[names(health) == "Obesity levels(Country)"] <- "Obesity levels (percentage)"
+names(health)[names(health) == "Life expectancy(years) (Country)"] <- "Life expectancy (years)"
+names(health)[names(health) == "Pollution(Index score) (City)"] <- "Pollution Index Score"
+names(health)[names(health) == "Happiness levels(Country)"] <- "Happiness Levels"
+names(health)[names(health) == "Outdoor activities(City)"] <- "Number of outdoor activities"
+names(health)[names(health) == "Number of take out places(City)"] <- "Number of take-out places"
+names(health)[names(health) == "Cost of a monthly gym membership(City)"] <- "Cost of gym membership (Pounds)"
+
+health[20, 3] <- 1828 # Geneva[sunlight]
+
+# https://www.iqair.com/us/japan/fukuoka
+health[7, 7] <- 41.0 # Fukuoka[pollution]
+
+# https://clockify.me/working-hours
+health[12, 8] <- 2096 # Beijing[work]
+health[13, 8] <- 2209 # Bangkok[work]
+health[14, 8] <- 1792 # Buenos Aires[work]
+health[17, 8] <- 2282 # Jakarta[work]
+health[23, 8] <- 1888 # Cairo[work]
+health[24, 8] <- 2136 # Taipei[work]
+health[26, 8] <- 2691 # Mumbai[work]
+health[31, 8] <- 2171 # Hong Kong[work]
+health[32, 8] <- 1987 # Shanghai[work]
+health[36, 8] <- 1890 # Sao Paulo[work]
+health[39, 8] <- 2245 # Johannesburg[work]
+
+
+health_sunshine <- health %>% slice_min(`Sunshine hours`, n = 10) %>% mutate(City = fct_reorder(City, desc(`Sunshine hours`)))
+health_water <- health %>% slice_max(`Cost of bottled water (Pounds)`, n = 10) %>% mutate(City = fct_reorder(City, `Cost of bottled water (Pounds)`))
+health_obesity <- health %>% slice_max(`Obesity levels (percentage)`, n = 10) %>% mutate(City = fct_reorder(City, `Obesity levels (percentage)`))
+health_life <- health %>% slice_min(`Life expectancy (years)`, n = 10) %>% mutate(City = fct_reorder(City, desc(`Life expectancy (years)`)))
+health_pollution <- health %>% slice_max(`Pollution Index Score`, n = 10) %>% mutate(City = fct_reorder(City, `Pollution Index Score`))
+health_happiness <- health %>% slice_min(`Happiness Levels`, n=10) %>% mutate(City = fct_reorder(City, desc(`Happiness Levels`)))
+health_outdoor <- health %>% slice_min(`Number of outdoor activities`,n=10) %>% mutate(City = fct_reorder(City, desc(`Number of outdoor activities`)))
+health_takeout <- health %>% slice_max(`Number of take-out places`, n=10) %>% mutate(City = fct_reorder(City, `Number of take-out places`))
+health_gym <- health %>% slice_max(`Cost of gym membership (Pounds)`, n=10) %>% mutate(City = fct_reorder(City, `Cost of gym membership (Pounds)`))
+
+server <- function(input, output){
+    
+    output$sunshine_plot <- renderPlot({
+      
+        ggplot(health_sunshine, aes(x=fct_inorder(City), y=`Sunshine hours`, fill=`Sunshine hours`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Sunshine Hours') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='orange')
+    })
+    
+    output$water_plot <- renderPlot({
+      
+        ggplot(health_water, aes(x=fct_inorder(City), y=`Cost of bottled water (Pounds)`, fill=`Cost of bottled water (Pounds)`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Cost of bottled water (Pounds)') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='navy')
+    })
+    
+    output$obesity_plot <- renderPlot({
+      
+        ggplot(health_obesity, aes(x=fct_inorder(City), y=`Obesity levels (percentage)`, fill=`Obesity levels (percentage)`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Obesity levels (percentage)') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='red')
+    })
+    
+    output$life_plot <- renderPlot({
+      
+        ggplot(health_life, aes(x=fct_inorder(City), y=`Life expectancy (years)`, fill=`Life expectancy (years)`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Life expectancy (years)') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='salmon')
+    })
+
+    output$pollution_plot <- renderPlot({
+      
+        ggplot(health_pollution, aes(x=fct_inorder(City), y=`Pollution Index Score`, fill=`Pollution Index Score`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Pollution Index Score') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='lightgrey', high='grey')
+    })
+
+    output$happiness_plot <- renderPlot({
+      
+        ggplot(health_happiness, aes(x=fct_inorder(City), y=`Happiness Levels`, fill=`Happiness Levels`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Happiness Levels') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='turquoise')
+    })
+
+    output$outdoor_plot <- renderPlot({
+      
+        ggplot(health_outdoor, aes(x=fct_inorder(City), y=`Number of outdoor activities`, fill=`Number of outdoor activities`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Number of outdoor activities') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='orange')
+    })
+
+    output$takeout_plot <- renderPlot({
+      
+        ggplot(health_takeout, aes(x=fct_inorder(City), y=`Number of take-out places`, fill=`Number of take-out places`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Number of take-out places') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='brown')
+    })
+
+    output$gym_plot <- renderPlot({
+      
+        ggplot(health_gym, aes(x=fct_inorder(City), y=`Cost of gym membership (Pounds)`, fill=`Cost of gym membership (Pounds)`)) + theme(axis.text.x = element_text(size = 15,angle = 45, hjust=1)) + labs(x = 'Bottom 10 Cities', y = 'Cost of gym membership (Pounds)') + geom_bar(stat='identity') + scale_fill_gradient2(low='snow', mid='snow', high='green')
+    })
+}
+
+ui <- navbarPage("Bottom 10",
+  theme=shinytheme("superhero"),
+  tabPanel("Sunshine",
+     plotOutput("sunshine_plot")
+  ),
+  tabPanel("Water Cost",
+     plotOutput("water_plot")
+  ),
+  tabPanel("Obesity",
+     plotOutput("obesity_plot")
+  ),
+  tabPanel("Life",
+     plotOutput("life_plot")
+  ),
+  tabPanel("Pollution",
+     plotOutput("pollution_plot")
+  ),
+  tabPanel("Happiness",
+     plotOutput("happiness_plot")
+  ),
+  tabPanel("Outdoor Activities",
+     plotOutput("outdoor_plot")
+  ),
+  tabPanel("Take-Out Places",
+     plotOutput("takeout_plot")
+  ),
+  tabPanel("Gym Cost",
+     plotOutput("gym_plot")
+  ),
+)
+
+
+shinyApp(ui = ui, server = server, options = list(height = 500))
+```
+3) Plot summary
+-  For my plot, I wanted to modify Peter's plot of top 10 countries for each category to show the bottom 10 countries instead. By looking at the bottom 10 countries we can see which variables are weighing heavily on the unhappiness of these countries. Also, if you are a leader of a country looking at this plot you can make decisions to improve the happiness of your country by focusing on specific aspects of the economy (lowering gym costs, lower pollution, etc).

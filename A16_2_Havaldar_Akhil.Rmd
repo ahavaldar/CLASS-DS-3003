@@ -1,0 +1,134 @@
+---
+title: "Assignment 16 - Animations (4 pts)"
+author: "Group 2, Akhil Havaldar (ash2sfp)"
+date: "Due Date: 11:59pm, Apr 10"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+# runtime: shiny    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(shiny)
+library(shinythemes)
+#install.packages('gifski')
+#install.packages('png')
+library(gifski)
+library(png)
+```
+
+# Group Homework 
+
+- You will work with your group to complete this assignment.
+.
+- Submit your group's shared `.Rmd` AND your kintted `html` on Collab.
+
+- You **don't** need to upload the html file on RPubs. 
+
+- Confirm this with the following comment included in your submission text box: **"Honor Pledge: I have recreated my group submission using using the tools I have installed on my own computer"**
+    
+- Name the files with a group name and YOUR name for your submission.
+
+
+# Part 1: `gganimate`
+
+- First, get the latest data from [OWID](https://ourworldindata.org/covid-deaths).
+      
+   - The file should likely be named "owid-covid-data.xlsx" or "owid-covid-data.csv." (or jason file)
+      
+- Second, choose six countries that are of interest to you, and create a subset with the six countries.
+
+- Third, create an animated line plot of "Covid Deaths Each Day Per 100,000 People in Countries" as in our lecture note on Animations.  
+
+
+```{r}
+OWID_covid <- read.csv("owid-covid-data.csv")
+focus <- OWID_covid %>% filter(population > 10000000) %>%
+  filter(location != 'World') %>%
+  filter(continent %in% 'Europe') %>%
+  mutate(per_capita_deaths = total_deaths/population) %>%
+  dplyr::select(location, per_capita_deaths) %>% #
+  group_by(location) %>% top_n(n=1) %>% 
+  arrange(-per_capita_deaths) %>%
+  distinct()  
+  
+OWID_covid$date <- as.Date(OWID_covid$date) 
+
+covid_per_capita_fig <- OWID_covid %>% 
+  filter(location %in% focus$location[1:6]) %>%
+ 
+  ggplot(mapping=aes(x=date, y=100000*new_deaths_smoothed/population,
+                     color=location, linetype=continent, group=location)) + 
+  geom_line() + theme_bw() + 
+  theme(legend.position="top", legend.title=element_blank(), 
+        legend.direction="horizontal", legend.box="vertical") +
+  labs(title="Covid Deaths Each Day Per 100,000 People in Countries", x="Date", y="Mortality rate")
+
+
+library(gganimate)
+
+covid_per_capita_fig + geom_line() + transition_reveal(date)   
+```
+
+- Fourth, describe your findings from the plot.
+From the plot you can see that for majority of the countries that was a peak in covid deaths overall from a little before 2021-01 to 2021-07. Belgium had the highest mortality rate near the mid 2020 and Romania had the highest mortality rate late 2021. The overall trend for the the six countries is pretty similar with peaks and dips around the same time frame. 
+
+# Part 2: `plotly`
+
+- Create an animated plot with the `Play` button from package `plotly`. Please refer to our lecture note on Animations, [feature of plotly](https://plotly.com/r/animations/), and [cumulative anmiations](https://plotly.com/r/cumulative-animations/).
+
+- First, use an appropriate dataset that is available in data repositories (e.g., [kaggle](https://www.kaggle.com/datasets)). But don't use the built-in datasets or datasets from packages. Don't use any datasets you used for the previous assignments.
+
+I found this dataset on Kaggle and did some cleaning in excel to allow me to create an
+animation: https://www.kaggle.com/datasets/prasertk/homicide-suicide-rate-and-gdp.
+
+- Second, briefly describe the dataset you're using for this assignment (e.g., means to access data, context, sample, variables, etc...)
+
+This dataset looks for a possible correlation between GDP and suicides/homicides 
+for countries all around the world. The most notable variables are continent, 
+year, suicide mortality rate, and GDP.
+   
+- Third, create any animated plot with the `Play` button.  
+
+```{r}
+library(plotly)
+
+df <- read.csv('suicide2.csv')
+
+df <- df[df$year >= 2002,]
+
+fig <- df %>%
+  plot_ly(
+    x = ~GDP, 
+    y = ~Suicide.mortality.rate, 
+    color = ~continent, 
+    frame = ~year, 
+    text = ~country, 
+    hoverinfo = "text",
+    type = 'scatter',
+    mode = 'markers'
+  )
+fig <- fig %>% layout(
+    xaxis = list(
+      type = "log"
+    )
+  )
+
+fig
+```
+
+- Fourth, describe your findings from the animated plot. 
+First, I want to note there is a small visual bug in the animation from 2011-2012.
+For some reason, several of the African countries change positions which makes it
+seem like their rates changed drastically. But they return to normal in the next year,
+so this does not meaningfully affect the analysis. Overall, it seems like most countries
+are very slightly moving to the right and down, which indicates an increase in GDP
+or/and a decrease in suicide rate. It is also interesting to look at how different colors
+are clustered together. For example, generally speaking the blues are clustered further
+to the right than the dark greens. This indicated that Europe has a higher average GDP
+than Africa, which is to be expected.

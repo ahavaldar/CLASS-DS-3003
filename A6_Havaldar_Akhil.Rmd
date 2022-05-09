@@ -1,0 +1,96 @@
+---
+title: "Assignment 6 - Midterm Proposal (2 pts)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: 11:59pm, Feb 15"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+---
+
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+For the midterm proposal, briefly describe your topic along with both an article/report/blog and a dataset. *Submit both `.Rmd` and "knitted"`.html` files*
+
+# Article
+
+- https://www.theguardian.com/us-news/2022/feb/08/us-opioids-crisis-congress-government-report
+- This article talks about the opioid epidemic and the deaths it has caused starting all the way back in 1999. The article also mentions how the social and psychological impact of drug overdoses are at an all time high, and is something that costs the US economy trillions of dollars. What caught my eye was that drugs are becoming cheaper and cheaper to manufacture and sell, due to the synthetic nature of these new drugs. Because the drugs are synthetic, the potency and the subsequent fatality rates are much higher than non-synthetic versions. What is alarming is that these synthetic versions are sweeping the US, because they are cheaper to produce, but also because social media platforms are making it easier for drug dealers to make contact with many potential buyers. After reading this article, I decided to find a data set that explored the opioid deaths in America. By exploring the data I hope to find trends that could possibly be a cause for the opioid epidemic.  
+
+- Presentation title: Opioid Epidemic in America
+
+# Data: https://www.kaggle.com/ryanandreweckberg/opioid-crisis-by-interpersonal-relationships
+
+- This data set matches well with my article as it looks at opioid related deaths from 1890 counties all over the country. The data has over 1 million observations of drug related deaths from 2011-2017. The important variables the data contains and that I will use are: the state in which the death occurred, the type of drug used at death, the education type of the person, how the person commuted to work, and the average household income of the state at the time of death. I will also only be using the year 2017 as the data set is extremely large, and 2017 is the most recent year in the data set. I am choosing these variables because from these variables we can see what kinds of people in each state die from drug use. For example, are the majority of deaths from a impoverish area in rural America in which the user had to walk to work, and was a high school dropout? Or were they a college graduate who drove alone to work in California? By graphing these variables, we can start to see the bigger picture of the drug deaths. 
+
+
+- Print the first 6 rows using function `head()`.
+
+```{r}
+library(readr) 
+data <- read_csv("opioid.csv")
+head(data)
+tail(data)
+summary(data)
+```
+
+
+# Data Validation
+
+- Check the content of the attributes, traits, features, rows, and/or other properties specific to your dataset.
+
+   + Is the data type correct for this field?
+
+   + Is the value within the valid range or part of a domain or enumerated list?
+
+   + Check for duplicates, for example of a unique key.
+
+   + Check for nulls. Are there mandatory values, or are null / empty values allowed? Are the null types consistent (NaN, infinity, empty strings, etc.)?
+
+
+- Tips: for duplicates, use function `unique()`. For missing values, use function `is.na()`. To delete all rows with a missing, use function `na.omit()`. Feel free to use other functions to check duplicates and missing values.
+
+```{r}
+# Taking only the 2017 observations and variables of interest
+library(dplyr)
+data <- data %>%
+  filter(Year == "2017") %>%
+  select(State, Year, Type, EducationType, CommuteType, Income)
+  
+# Omitting all NA's (still leaves 110,790 observations)
+data <- na.omit(data)
+```
+
+    
+# Plot 
+
+- I will be creating a histogram, barplot, facet wrapped bar plot, and a pie chart. A histogram for the distribution of income. A bar graph for states, education type, and commute type. And a facet wrapped graph for a combination of a few variables used previously in the bar graphs. 
+
+
+# Post on Discussion Board
+
+- Check your presentation day. 
+
+- Create a post on the discussion board with your presentation title as the post title by 11:59 pm, Feb 15. You'll edit your post on the discussion board to include your presentation files.
+
+- You should upload your presentation files (rmd & html) and dataset you used on the discussion board by the day before your presentation day. For example, if you're a presenter on Feb 21, upload your presentation files by 11:59 pm, Feb 20.  
+
+

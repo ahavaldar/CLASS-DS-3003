@@ -1,0 +1,386 @@
+---
+title: "Create-Your-Own-Plot Assignment (4 pts per presentation date)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: See below"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+runtime: shiny
+---
+
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+
+You will create your own plot(s) using datasets from presenters to support or argue against their argument. Please modify the given rmd file for your submission.
+
+1. Select two presentations on each presentation date: (i) one where you play a role as a peer reviewer and (ii) the other that you're interested in to draw plots on each presentation date. 
+
+2. You can use a different plot type, or modify the presenter's key plot.
+
+3. In your submission files, you should : 
+   - summarize each presentation (e.g., title, background, plot type).
+   - explain your plot(s) and modifications you've made.
+   - support or argue against each presenter's argument using your key plot. 
+
+4. In your submission files, you should include either of the following statements:
+
+   - "I pledge that I have neither given nor received help on this [examination/quiz/assignment]."
+   - "I have [received/given] help on this assignment [to/from] [student]; the nature of this support was [elaborate]."
+   
+
+5. Add your RMD and HTML files to *Assignment Module*. 
+  
+
+# Assignment 18
+
+ - Due: 11:59pm on Apr 24 (Sunday)
+ - Add your RMD and HTML files (having plots for presentations on Apr 18 and Apr 20) to *A18: Your own plots* under *Assignment Module*. Thus, the max. points are 8 points. 
+ 
+## Create your own plots for two presentations on Apr 18 (4 pts)
+
+ 
+### Presentation 1: One where you work as a peer reviewer
+1) Summary
+- Eric's presentation was on the history and future of cryptocurrency. He talks about the differences between types of crypto and between proof of work and proof of stake. He argues with the article that "The Merge" Ethereum will undergo, will start a new era of more sustainable crypto practices. He found his data on Kaggle and it contains information on the historical prices of the top cryptocurrencies. Variables include: open value, close value, high value, low value, volume, and marketcap. He uses various plots to show the time series data, and uses a shiny plot to choose between types of crypto. 
+
+2) Plot
+```{r, warning=FALSE, message=FALSE, results=FALSE}
+library(ggplot2)
+library(shiny)
+library(plyr)
+library(dplyr)
+library(readr)
+library(plotly)
+library(zoo) # for lag function and for as.yearmon
+library(data.table)
+difficulty = read.csv("Data/miningdata/difficulty.csv", col.names = c("Date", "Difficulty"))
+difficulty = filter(difficulty, Difficulty > 0) #removing one observation of difficulty 0
+str(difficulty)
+difficulty$Date = as.Date(difficulty$Date)
+difficulty$ID = 1:nrow(difficulty)
+
+hashrate = read.csv("Data/miningdata/hash-rate.csv", col.names = c("Date", "HashRate"))
+str(hashrate) # checking format, we see that we need to also convert hashrate's Date variable to Date type
+hashrate$Date = as.Date(hashrate$Date)
+hashrate$ID = 1:nrow(hashrate)
+
+btc_mined = read.csv("Data/miningdata/total-bitcoins.csv", col.names = c("Date", "CumulativeBTC"))
+str(btc_mined)
+btc_mined$Date = as.Date(btc_mined$Date)
+
+btc_mined$ID = 1:nrow(btc_mined)
+
+
+setDT(btc_mined)
+setDT(difficulty)
+str(difficulty)
+setkey(difficulty, Date)
+setkey(btc_mined, Date)
+combined = difficulty[btc_mined, roll='nearest'] # combining rows with slightly different dates by rolling to nearest date
+
+setDT(hashrate)
+setkey(hashrate, Date)
+setkey(combined, Date)
+combined2 = hashrate[combined, roll = "nearest"] # doing the process again
+combined2 = combined2[,-c(3,5,7)]
+str(combined2)
+
+countries = read.csv("Data/miningdata/miningcountries.csv") # Statista Data
+countries_long = tidyr::gather(countries, Country, Country, United.States:Other, factor_key = TRUE) # converting wide format to long
+countries_long = countries_long[,-2]
+colnames(countries_long) = c("Date", "Country", "Percentage")
+str(countries_long)
+
+
+countries_long$Date = as.Date(as.yearmon(countries_long$Date))
+
+
+coin_data <- list.files(path = "Data/data",  # Identify all CSV files
+                       pattern = "*.csv", full.names = TRUE) %>% 
+  lapply(read_csv) %>%                              # Store all files in list
+  bind_rows                                         # Combine data sets into one data set 
+                                           # Print data to RStudio console
+
+coin_data = na.omit(coin_data) # 0 nulls
+
+str(coin_data) # The data types are mostly correct, but we likely want to change date to a different variable type
+
+coin_data$Date = as.Date(coin_data$Date)
+
+str(coin_data) # Looks good now!
+
+str(coin_data)
+coin_data = coin_data[,-1]# removing SNo
+str(coin_data)
+
+coin_data = coin_data %>%
+  mutate(Proof = case_when(
+    Symbol == "BTC" ~ "Proof of Work", # Bitcoin
+    Symbol == "DOGE" ~ "Proof of Work", # Dogecoin
+    Symbol == "ETH" ~ "Proof of Work", # Ethereum
+    Symbol == "LTC" ~ "Proof of Work", # Litecoin
+    Symbol == "XMR" ~ "Proof of Work", # Monero
+    
+    Symbol == "BNB" ~ "Proof of Stake", # Binance Coin
+    Symbol == "SOL" ~ "Proof of Stake", # Solana
+    Symbol == "ATOM" ~ "Proof of Stake", # Cosmos
+    Symbol == "DOT" ~ "Proof of Stake", # Polkadot
+    Symbol == "ADA" ~ "Proof of Stake", #Cardano
+    TRUE ~ "Other"
+  ))
+str(coin_data$Proof)
+coin_data$Proof <- factor(coin_data$Proof, levels=c("Proof of Work", "Proof of Stake", "Other"))
+
+BTC = coin_data[coin_data$Name == "Bitcoin",]
+close_yesterday <- lag(BTC$Close, 1, na.pad=TRUE)
+BTC$change <-  (BTC$Close - close_yesterday) / close_yesterday
+BTC = na.omit(BTC) # removing the first row
+BTC[,"Cumulative_return"] = cumprod((1+BTC$change))
+
+ETH = coin_data[coin_data$Name == "Ethereum",]
+close_yesterday <- lag(ETH$Close, 1, na.pad=TRUE)
+ETH$change <-  (ETH$Close - close_yesterday) / close_yesterday
+ETH = na.omit(ETH) # removing the first row
+ETH[,"Cumulative_return"] = cumprod((1+ETH$change))
+
+USDT = coin_data[coin_data$Name == "Tether",]
+close_yesterday <- lag(USDT$Close, 1, na.pad=TRUE)
+USDT$change <-  (USDT$Close - close_yesterday) / close_yesterday
+USDT = na.omit(USDT) # removing the first row
+USDT[,"Cumulative_return"] = cumprod((1+USDT$change))
+
+BNB = coin_data[coin_data$Name == "Binance Coin",]
+close_yesterday <- lag(BNB$Close, 1, na.pad=TRUE)
+BNB$change <-  (BNB$Close - close_yesterday) / close_yesterday
+BNB = na.omit(BNB) # removing the first row
+BNB[,"Cumulative_return"] = cumprod((1+BNB$change))
+
+ADA = coin_data[coin_data$Name == "Cardano",]
+close_yesterday <- lag(ADA$Close, 1, na.pad=TRUE)
+ADA$change <-  (ADA$Close - close_yesterday) / close_yesterday
+ADA = na.omit(ADA) # removing the first row
+ADA[,"Cumulative_return"] = cumprod((1+ADA$change))
+
+return_df = bind_rows(BTC,ETH,USDT,BNB,ADA)
+
+
+returns_only = return_df[,c("Date","Name","Cumulative_return")]
+returnsO_final = subset(returns_only, Date == "2021-07-06")
+returnsO_final = returnsO_final[order(-returnsO_final$Cumulative_return),]
+```
+
+```{r}
+shinyApp(
+  ui = fluidPage(
+   sidebarLayout(
+    sidebarPanel( 
+     #sliderInput("span", label = "Span adjustment:",
+              #min = 0.2, max = 0.9, value = 0.5, step = 0.1),
+      #selectInput("degree", label = "Degree of Loess line:",
+              #choices = c(0, 1, 2), selected = 1),
+       selectInput("name", label = h3("Select Cryptocurrency: "), 
+    choices = unique(coin_data$Name), 
+    selected = 3),
+    radioButtons("logscale", "Log Scale?", choices = c("log", "linear"), selected = "linear", width = 100),
+    
+  
+  hr(),
+  fluidRow(column(3, verbatimTextOutput("value")))
+    ),
+    mainPanel(
+      
+      tabsetPanel(type = "tabs",
+                  tabPanel("Marketcap", plotlyOutput("coinplot")),
+                  tabPanel("Cumulative Returns", plotlyOutput("returnplot"))
+                  #tabPanel("Summary"), dataTableOutput("table"))
+     ,
+    )
+   )
+  )),
+  
+
+  server = function(input, output){
+    
+    output$returnplot <- renderPlotly({
+    plot_ly(return_df[return_df$Name %in% input$name,],
+            type = "scatter",
+            mode = "lines",
+            x = ~Date,
+            y = ~Cumulative_return) %>% layout(yaxis = list(type= input$logscale))
+    })
+    
+    #output$value <- renderPrint({ input$Name })
+    output$coinplot <- renderPlotly({
+    plot_ly(coin_data[coin_data$Name %in% input$name,],
+            type = "scatter",
+            mode = "lines",
+            x = ~Date,
+            y = ~Marketcap) %>% layout(yaxis = list(type= input$logscale))
+      
+    })
+    
+    })
+```
+
+3) Plot summary
+- For my plot, I decided to edit Eric's key shiny plot. Instead of graphing close price I wanted to graph market cap. The reason for this being that I wanted to see the how much certain cryptos have grown or shrunk. From the graph we can see a few trends. One, COVID hit most of the cryptos hard as their market cap fell dramatically during the pandemic. Second, we can see that some cryptos are much more volatile than others, with their market cap going up and down constantly. These cryptos could be ones you choose to stay away from.  
+
+
+### Presentation 2: Choose another one. 
+1) Summary
+- Salem's presentation was on the impact of mental health (suicide specifically) on society. Along with the article, Salem argues that suicide is not as rare as it might seem. She hopes that by spreading awareness on this issue, more people will be inclined to get the help they need, and rates will slowly start to decline as more resources open up. She found her data set on Kaggle, and it contains information on suicide rates per country, year, sex, age, and many others. She then uses graphs to show different relationships between these variables, along with an animated plot of the change in suicide rates per year. 
+
+2) Plot
+```{r}
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(DT)
+library(rmarkdown)
+require("kableExtra")
+library(shinythemes)
+data <- read.csv('suicidalrates.csv')
+cleandata <- data[c(1:8,10:12)]
+cleandata <- na.omit(cleandata)
+
+shinyApp(
+  ui = fluidPage(
+  selectInput("gen", "Generation:", choices=unique(cleandata$generation), selected="Boomers"),
+  plotOutput("plot1")
+  ),
+  
+  server = function(input, output){
+    output$plot1 <- renderPlot({
+ggplot()+ geom_boxplot(data = cleandata[cleandata$generation==input$gen,], aes(x=sex, y=suicides.100k.pop, color = generation))+
+      labs(title= "Suicide rates per 100K/population per Generation by Sex",
+           x= "Sex",y= "Suicide Rates per 100k/population")
+      })}
+)   
+```
+3) Plot summary
+-  With this graph, I wanted to look at the boxplot distribution of suicides per 100k/population for each generation, by gender. This will give us an idea of whether females or males have higher rates of suicide for each generation. From the graph, we can see that males have much higher rates of suicide across generations which is contradictory to what the article said. 
+
+
+
+
+## Create your own plots for two presentations on Apr 13 (4 pts)
+ 
+### Presentation 1: One where you work as a peer reviewer
+1) Summary
+- Josephine's presentation was on coffee consumption in the US. Her article mentions that American coffee drinking habits are at an all time high right now, which could be because of a few things. Josephine wanted to look at the outlook of the coffee industry over the next few years, and see if there is room for growth or decline. She also wanted to look at her coffee habits compared to the US as a whole. She found her data from the Ibis World database, and contains information on the year, revenue, establishments, and spending. She used different graphs to look at trends and possible correlations.  
+
+2) Plot
+```{r}
+library(tidyverse)
+library(plotly)
+library(shiny)
+library(ggplot2)
+library(DT)
+library(dplyr)
+library(gifski)
+library(foreign)
+library(shinythemes)
+library(gganimate)
+library(knitr)
+
+coffee <- read_csv("RTD_Coffee.csv")
+countries <- read_csv("disappearance.csv")
+countries <- na.omit(countries)
+country_new <- t(countries)
+country_new <- country_new[c(2:30), ]
+colnames(country_new) <- c("Japan", "Norway", "Switzerland","Tunisia", "USA")
+Country <- c(replicate(29, "Japan"), replicate(29, "Norway"), replicate(29, "Switzerland"), replicate(29, "Tunisia"), replicate(29, "USA"))
+Year <- seq(1990, 2018)
+Values <- c(country_new[, 1],country_new[, 2], country_new[, 3],country_new[, 4],country_new[, 5])
+consumption <- data.frame(Country, Year, Values)
+consumption$Values <- as.numeric(consumption$Values)
+consumption$Year <- as.numeric(consumption$Year)
+
+japan <- consumption %>% filter(Country == "Japan") %>% filter(Year >= 2002)
+consum <- coffee %>% filter(Year <= 2018)
+comb_con <- data.frame(japan, consum$`Consumer spending ($ billion)`)
+colnames(comb_con) <- c("Country", "Year", "Consume", "Consumer Spending")
+ui <- navbarPage(theme = shinytheme("spacelab"),title = "Coffee Consumption",
+      tabPanel("Adjust Span", sliderInput("span", label = "Span adjustment:",
+              min = 0.2, max = 0.9, value = 0.5, step = 0.1),
+  selectInput("degree", label = "Degree adjustment: ", 
+              choices = seq(0, 2, 1), selected = 1), plotOutput("ex_plot")))
+
+server <- function(input, output){
+output$ex_plot <- renderPlot({
+  p <- ggplot(comb_con, aes(x=Consume, y=`Consumer Spending`))+geom_point()+theme_bw()+labs(title="Coffee Consumption vs. Consumer Spending", x="Consumer Spending ($ billions)", y="Consumption (thousand 60-kg bags")+geom_smooth(method="loess", method.args = list(degree=input$degree), se=FALSE, span=input$span)
+  print(p)
+})
+}
+
+shinyApp(ui = ui, server = server, options = list(height = 600))
+
+```
+3) Plot summary
+-  For my plot I looked at the consumption of coffee in Japan compared to the original plot of USA to see if consumption varies drastically based on the amount of money spent (if there is a negative relationship). There seems to be no variation between the two variables, but the US curve is slightly more linear than the Japan curve. Looking across other countries as well, the trend is persistent which means we can observe differences between countries due to other variables and not consumption or consumer spending.  
+
+### Presentation 2: Choose another one. 
+1) Summary
+- Thomas' presentation was on whether or not fighting games are the ultimate genre of Esports. He argues that fighting games draw the most viewers, which then in turn results in the most profits. To prove this point, he found a dataset on Kaggle which contains information on different video game genres, number of players, tournaments, and total earnings. Thomas used different bar graph to compare these variables, and used a shiny plot to to show different release dates per genre. 
+
+2) Plot
+```{r}
+library(ggplot2)
+library(dplyr)
+library(plyr)
+library(shiny)
+library(data.table)
+
+esports_data = read.csv("GeneralEsportData.csv")
+esports_data$Genre = as.factor(esports_data$Genre)
+
+#Get rid of rows with 0 tournaments
+esports_data = esports_data[!esports_data$TotalTournaments==0,]
+
+#Get rid of rows with 0 earnings
+esports_data = esports_data[!esports_data$TotalEarnings==0,]
+
+combined = esports_data %>%
+  group_by(Genre) %>%
+  summarise(Mean_Release_Year= round(mean(ReleaseDate)), TotalEarnings = sum(TotalEarnings), TotalPlayers = sum(TotalPlayers), TotalTournaments = sum(TotalTournaments))
+
+ui <- fluidPage(
+  selectInput("genre", label = "Select Genre:",
+              choices = levels(esports_data$Genre), selected = 'Fighting Game'),
+ plotOutput("histplot"))
+
+server <- function(input, output){
+dataInput <- reactive({
+  esports_data
+})
+  
+    output$histplot <- renderPlot({
+      ggplot(esports_data[esports_data$Genre == input$genre,], aes(x=TotalEarnings))  +
+  geom_histogram(fill="orange", color="black") +
+  theme_grey()
+    })}
+
+shinyApp(ui = ui, server = server, options = list(height = 600))
+
+```
+3) Plot summary
+-  Instead of using a boxplot to look at total earnings per genre, I graphed a histogram. I did this in order to see the distributions and spread of the distributions of total earnings for each genre. From the histograms, there seems to be a very persistent right skew, with the majority of total earnings being close to 0. This tells us that the majority of games aren't making a ridiculous amount of money, but the genres that do are unique, and have very spread out distributions (this could indicate that the genre contains a few games that were "hits" and a few that were "misses"). 

@@ -1,0 +1,142 @@
+---
+title: "Assignment 4 - Plots (4 pts) & RPub (1 pt)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: 11:59pm, Jan 6"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+---
+
+```{=html}
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+```
+
+# Instructions
+
+- This is an individual assignment. *Submit your `.Rmd` and "knitted"`.html` files through Collab.*
+
+- Upload your `html` file on [RPubs](https://rpubs.com) and include the link when you submit your submission files on Collab. 
+
+- Please don't use `ggplot2` for this assignment. We'll use `ggplot2` almost all the times after this assignment. 
+
+# Part 1 
+
+- Use the occupational experience variable (“oexp”) of the income_example dataset and plot
+ 
+  + a histogram, 
+  + a kernel density estimate, 
+  + a boxplot of “oexp”, 
+  + a set of boxplots showing the distribution of “oexp” by sex crossed with occupational status (“occ”). 
+ 
+- You can either produce four separate but small plots, or you can use par(`mfrow = c(2, 2)`) to create a plotting region consisting of four subplots. 
+
+- **Briefly describe the distributions** of occupational experience in words (also include your plots and the R syntax).
+
+
+[“Play” with the `hist()` and `density()` functions; for instance, by choosing a different number of bins or different break points for the `hist()` function, or different bandwidths using the adjust argument in `density()`. See also the corresponding help files and the examples given there. Only include the histogram and density estimate you find most informative. Also, add useful axis-labels and a title using the following arguments inside the plotting functions: `xlab, ylab, main`. Use the help `?par()` for the description of many more plotting parameter.]
+
+
+
+```{r}
+# Reading in data
+inc <- read.table('C:/Users/a8hav/OneDrive/Documents/R/DS-3003/income_exmpl (1).dat', header = T, sep = "\t")
+
+# creating histogram
+## cutting oexp into 2 yr groups to see the distribution of oexp's
+inc$oexp5 <- cut(inc$oexp, seq(0, 50, by = 2))
+
+## plotting the histogram
+par(mfrow = c(2,2))
+hist(inc$oexp, seq(0, 50, by = 2), xlab = 'Occ. Exp (years)', main = 'Histogram of Occ. Exp.', col = 'grey90')
+
+# Kernel density estimate
+## using the built in R function
+plot(density(inc$oexp), main = 'Density Estimate of Occ. Exp.', xlab = "Occ. Exp. (years)")
+
+# Boxplot of oexp
+boxplot(inc$oexp, horizontal = T, main="Boxplot of Occ. Exp", xlab = "Occ. Exp (years)")
+
+# Set of boxplots
+boxplot(inc$oexp ~ inc$sex + inc$occ, col = rep(c('blue', 'red'), each = 3), ylab = 'Occ. Exp.', xlab = 'Sex x Occ. (Blue = M, Red = F)', names = c('low', 'med.', 'high', 'low', 'med.', 'high'), main = 'Occ. Exp. by Sex and Occupation')
+```
+
+- The histogram shows a slightly right skew, with a lot of the subjects having between 0 and 2 years of occupational experience. The density curve appears more uniform than the histogram, but not completely uniform with a skew still present. The single boxplot shows shows a min and max of 0 and 50 respectively. It also gives us a median of just under 20, a lower quartile of just under 10, and an upper quartile of 30. The set of boxplots shows the distributions of occupational experience as determined by occupational status and sex. Overall we can see that males have more experience and for that category their status is medium.  
+
+
+# Part 2
+
+- Download the SCS Data set from Collab (there you also find a separate file containing a brief description of variables). Then investigate the relationship between the mathematics achievement score (“mathpre”) and the math anxiety score (“mars”) by plotting the data and the path of means. 
+
+(i) Produce a scatterplot between “mathpre” and “mars”. You might consider using `jitter()` or `alpha()` for avoiding overlying points
+.
+
+```{r}
+# Reading in data
+library(foreign)
+scs <- read.spss("C:/Users/a8hav/OneDrive/Documents/R/DS-3003/SCS_QE.sav", to.data.frame=TRUE)
+
+# Scatterplot
+plot(jitter(scs$mathpre, factor = 3), jitter(scs$mars, factor = 3), xlab = 'Math Pre-Test', ylab = 'Math Anxiety', main= 'Math Pre-Test vs. Math Anxiety', cex = .4, pch = 16)
+```
+
+(ii) Draw a conditioning plot for female and male students (variable “male”). Include “` | male `” in your first argument to create a conditioning plot.
+```{r}
+coplot(mathpre ~ mars | male, data = scs, xlab = 'Math Anxiety', ylab = 'Math Pre-Test' )
+
+```
+
+(iii) Describe in words the relation between math scores and math anxiety. Do you find evidence of Simpson's Paradox? 
+
+The scatterplot shows slight negative relationship between anxiety and math scores. As scores went up, anxiety decreased. Simpson's paradox does not seem to be present, as when broken down by sex both sexes shared the same negative trend.
+
+
+# Part 3
+
+- Use a dataset that is available in data repositories (e.g., [kaggle](https://www.kaggle.com/datasets)) 
+
+- Briefly describe the dataset you're using (e.g., means to access data, context, sample, variables, etc...)
+  
+This data set (https://www.kaggle.com/anubhabswain/brain-weight-in-humans) has information on the size of the head and the brain weight of that person. It also gives the subject's gender and age. The goal is to figure out if there is a correlation between the size of someone's head and their brain weight. 
+   
+- Re-do **Part 2**, i.e., 
+   + produce a scatterplot between “A” and “B”. You might consider using `jitter()` or `alpha()` for avoiding overlying points.
+   + draw a scatterplot plot conditioning on variable “C”. Include “` | C `” in your first argument to create a conditioning plot.
+   + describe in words the relation between "A" and "B." Do you find evidence of Simpson's Paradox?
+
+```{r}
+# reading data
+library(readr)
+brain <- read_csv("brainweight.csv")
+
+# recoding male and female
+brain$Gender <- ifelse(brain$Gender == 1, "Male", "Female")
+
+# scatterplot
+plot(jitter(brain$`Head Size(cm^3)`, factor = 3), jitter(brain$`Brain Weight(grams)`, factor = 3), xlab = 'Head Size (cm^3)', ylab = 'Brain Weight (grams)', main= 'Head Size vs. Brain Weight', cex = .4, pch = 16)
+```
+
+```{r}
+# condtional plot based on sex
+coplot(`Head Size(cm^3)` ~ `Brain Weight(grams)` | Gender, data = brain, xlab = 'Brain Weight (grams)', ylab = 'Head Size (cm^3)' )
+```
+
+As expected, the scatterplot shows that there is a strong positive correlation between head size and brain weight. As head size increases, so does brain weight. Simpson's paradox seems to not exist as when conditioned on gender, both genders exhibit the same pattern (strong positive).

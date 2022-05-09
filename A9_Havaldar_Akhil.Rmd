@@ -1,0 +1,113 @@
+---
+title: "Create-Your-Own-Plot Assignment (4 pts per presentation date)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: See below"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+---
+
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+You will create your own plot(s) using a dataset from presenters to support or argue against their argument. Please modify the given rmd file for your submission.
+
+1. Select two presentations on each presentation date: (i) one where you play a role as a peer reviewer and (ii) the other that you're interested in to draw plots on each presentation date. 
+
+2. You can use a different plot type, or modify the presenter's key plot.
+
+3. In your submission files, you should : 
+   - summarize each presentation (e.g., title, background, plot type).
+   - explain your plot(s) and modifications you've made.
+   - support or argue against each presenter's argument using your key plot. 
+
+4. In your submission files, you should include either of the following statements:
+
+   - "I pledge that I have neither given nor received help on this assignment."
+
+   
+5. Add your RMD and HTML files to *Assignment Module*. 
+  
+
+# Assignment 9
+
+ - Due: 11:59pm on Mar 6 (Sunday)
+ - Add your RMD and HTML files (having plots for presentations on Feb 28 and  Mar 2) to *A9: Your own plots* under *Assignment Module*. Thus, the max. points are 8 points. 
+ 
+## Create your own plot for a presentation on Feb 28 (4 pts)
+
+ 
+### Presentation 1:
+- Summary: Shining's presentation was about what contributes to anime success and popularity. She found a dataset to determine what factors are the most important, and the dataset includes ratings, plot theme, length, and season. Using these factors she created multiple plots. She graphed a bar plot of the mean rating of the count of tags to figure out if the number of tags play a role in the rating of the anime. She also graphed a scatterplot between mean rating and number of episodes, which found no correlation. She also graphed a boxplot to see if release season has an impact, which actually found that TV series have better ratings, but season doesn't have a great impact.  
+
+Plots:
+```{r}
+library(readr)
+library(ggplot2)
+anime <- read_csv("Anime.csv")
+
+ggplot(anime, aes(x=Type, y=Rating))+geom_boxplot()+labs(x="Type", y="Rating", title="Rating by Type")+theme(plot.title=element_text(hjust=0.5),axis.text.x = element_text(angle=90, hjust=1, vjust=0.3))
+```
+
+- Explanation: I think that a boxplot between the rating and type would be a good plot to include. By looking at the type of anime, we can see which ones are the most popular and most likely draw the most views. From this information, one can deduce the most popular modes of viewing anime, and then producers can look and see on which mode they should produce their anime to get the highest rating and achieve the most views. 
+
+
+### Presentation 2:
+- Summary: Jaden's presentation was on if natural language aptitude makes it easier to learn how to code. She used a dataset from the University of Washington, which has data on individuals who were taught Python from nothing. The researchers implemented multiple tests along the way and after to track progress. She used many line plots to support the article. One showed differences in learning python learning rates, which was able to detect individual differences in the outcome variables. She then looked at correlation between different predictive variables with loess regression lines.  
+
+Plots:
+```{r}
+cpu <- read_csv("Computer_Whisperers_Stepwise_Regression_Data_for_pub.csv")
+ggplot(cpu, aes(x=Inhibitory_Control, y=Working_Memory_Span))+ labs(x = "Inhibitory Control", y = "Working Memory Span", title = "Inhibitory Control vs. Working Memory Span") + geom_point()+theme(plot.title=element_text(hjust=0.5)) 
+```
+
+- Explanation: I chose this graph because I think it is important to look at correlations between all the possible variables, especially ones within the same group like working memory and inhibitory control. By looking at this correlation, we can see if one explains the other, which would not be ideal for an overall study. In this case however, this does not seem to be the case. 
+
+
+
+## Create your own plot for a presentation on Mar 2 (4 pts)
+
+### Presentation 1:
+- Summary: Melanie's presentation was on which colleges give you the most for your money. She looked at colleges by region, the starting median salary, and the mid career median salary. In order to find out which colleges were more worth it, she explored the data via bar graphs and boxplots. She made a bar graph of the school type and the salary, and from this graph we can see that Ivy leagues have the highest overall salary. She then used a boxplot to show the distribution of both mid career and starting median salary by region. Finally, she looked at the percentage change in salary across all the school types. 
+
+Plots:
+```{r}
+sal <- read_csv("salaries-by-region.csv")
+colnames(sal) <- sal[1, ]
+sal <- sal[-1,]
+sal$starting_median_salary <- as.numeric(sal$starting_median_salary)
+
+ggplot(sal) + geom_histogram(aes(x = starting_median_salary), bins = 25, fill = 'orange')+labs(x = 'Salary', y = 'Frequency', title = 'Histogram of Salary')+  theme(plot.title=element_text(hjust=0.5))
+```
+
+- Explanation: I think an important figure to include when doing exploratory data analysis is a histogram of the main numeric variable. It is important to gauge the distribution of the data before further analysis, so by looking at the median salary here we can see that the dataset is quite balanced (there is no skewness of the salary variable present), and would be good to conduct further analysis on. 
+
+
+### Presentation 2:
+- Summary: Monica's presentation was on if luxury cars are worth buying over standard cars. She looked at cars from Toyota as a standard car, and cars from BMW as the luxury cars. She made three plots for both the luxury and standard cars. She first used a histogram to show the price per car over the years. Both plots showed a heavy left skew. She then graphed the models of each car by price. From these graphs there seemed to be more variation in price from BMW than Toyota. Lastly, she used a smooth curve to show price vs. mileage. Overall, it seems to make sense why luxury cars are luxury cars and why they are more expensive. 
+
+Plots:
+```{r}
+bmw <- read_csv("bmw.csv")
+ggplot(bmw, aes(x=mpg, y=price)) + geom_point(color = "red") + labs(x="MPG", y = "Price") + ggtitle("MPG vs. Price") +  theme(plot.title = element_text(hjust = 0.5)) +  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_smooth(se = FALSE, color = 'blue')
+```
+
+- Explanation: Another important factor that goes into the value of cars is the MPG. By graphing the two variables, we can see how much higher or lower the price of the BMW will be when solely looking at the MPG value. From this graph, the trend does not really seem to be clear as to what is happening in terms of MPG and price. There seems to be a slight negative correlation, but there does not seem to be much of a correlation to say for certain MPG plays a role in determining the value of a car. 

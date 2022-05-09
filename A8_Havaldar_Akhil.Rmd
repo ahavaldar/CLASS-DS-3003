@@ -1,0 +1,116 @@
+---
+title: "Create-Your-Own-Plot Assignment (4 pts per presentation date)"
+author: "Akhil Havaldar (ash2sfp)"
+date: "Due Date: See below"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+---
+
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+
+
+You will create your own plot(s) using a dataset from presenters to support or argue against their argument. Please modify the given rmd file for your submission.
+
+1. Select two presentations on each presentation date: (i) one where you play a role as a peer reviewer and (ii) the other that you're interested in to draw plots on each presentation date. 
+
+2. You can use a different plot type, or modify the presenter's key plot.
+
+3. In your submission files, you should : 
+   - summarize each presentation (e.g., title, background, plot type).
+   - explain your plot(s) and modifications you've made.
+   - support or argue against each presenter's argument using your key plot. 
+
+4. In your submission files, you should include either of the following statements:
+
+   - "I pledge that I have neither given nor received help on this assignment."
+
+   
+
+5. Add your RMD and HTML files to *Assignment Module*. 
+  
+
+
+# Assignment 8
+
+ - Due: 11:59pm on Feb 27 (Sunday)
+ - Add your RMD and HTML files (having plots for presentations on Feb 21 and Feb 23) to *A8: Your own plots* under *Assignment Module*. Thus, the max. points are 8 points. 
+ 
+## Create your own plot for a presentation on Feb 21 (4 pts)
+
+### Presentation 1:
+- Summary: George's presentation was about the health of the US in comparison to other developed countries. The argument being that the mortality counts in the US for obesity, alcohol, and drugs are much higher and are increasing in comparison to other developed countries. His plots showed the mortality rates of certain diseases by country. He also plotted deaths from alcohol and smoking (preventable deaths). He used a mix of scatter plots and barplots to show that the US was the highest for things like drug use, interpersonal violence, and obesity related deaths. 
+
+Plots:
+```{r}
+library(readr)
+library(ggplot2)
+cause <- read_csv("cause.csv")
+
+ggplot(cause, aes(x=`Drug use disorders`, y=`Alcohol use disorders`))+
+ geom_point(color='green')+
+  labs(x = 'Drug Use', y = 'Alcohol Use', 
+       title = 'Drug Use vs. Alcohol Use') +
+   theme(plot.title=element_text(hjust=0.5))
+```
+
+- Explanation: I decided to plot drug use against alcohol use in a scatterplot. I chose to do this because I wanted to see if there seemed to be any correlation between two of the highest causes of deaths in the US with any other countries. This seems to be the case since as drug use increases so does alcohol use. While this doesn't directly relate to the main argument of the article, it is in support of the idea that maybe it is a good idea to look at drug use and alcohol use together as causes of deaths for the US in relation to other developed countries.  
+
+
+### Presentation 2:
+- Summary: Sarah's presentation was on the economic guide to picking a college major. The argument being that the reader should be looking at financial stability when picking a major. She used a scatterplot to show relationships between median earnings and unemployment, as unemployment is an important factor when choosing a major. She also used bar plots to see proportion of individuals for each major category and if they are making more/less than 45k dollars. She also used a boxplot per gender to show the relationship between earnings, majors, and gender. 
+
+Plots:
+```{r}
+grads <- read_csv("recent-grads.csv")
+ggplot(grads, aes(x=Major_category, y=Unemployment_rate))+geom_boxplot()+labs(x="Major Category", y="Unemployment Rate", title="Unemployment Rate by Major Category")+theme(plot.title=element_text(hjust=0.5),axis.text.x = element_text(angle=90, hjust=1, vjust=0.3))
+
+```
+
+- Explanation: I graphed unemployment rate by major category because I thought it would give the person trying to make a major decision better insight. Someone who is looking for a long term career in a particular field should be looking at a field where unemployment rates are low. This boxplot shows just that, and you can see which major categories would offer the most stable career. 
+
+
+## Create your own plot for a presentation on Feb 23 (4 pts)
+ 
+### Presentation 1:
+- Summary: Teagan's presentation was on the impact of burning fossil fuels on sea level rise. The goal of her presentation was to show how the sea levels rose over the past few decades due to human causes, such as fossil fuel burning. She accomplished this with a variety of plots. She used a line plot to give an overview of the sea level over the years so we can see the drastic rise in sea levels. She then used another line plot to show which countries contributed the most to emissions that impact rising sea levels. She then uses a bar plot as another way of showing the countries emissions over the years, and how they have contributed to the rise of sea levels.  
+
+Plots:
+```{r}
+fossil <- read_csv("fossil-fuel-co2-emissions-by-nation_csv.csv")
+ggplot(fossil, aes(x=`Solid Fuel`, y=`Liquid Fuel`))+ labs(x = "Solid Fuel", y = "Liquid Fuel", title = "Solid vs Liquid Fuel") + geom_point()+theme(plot.title=element_text(hjust=0.5)) 
+```
+
+- Explanation: Something I thought would be helpful to include when talking about limitations/next steps is a correlation between solid and liquid fuel. One reason I chose these two was that they are generally the groups that makes up the most of the total fuel. By looking at a correlation between these two we can see that a slight positive correlation may be present. When looking at what to do next, reducing solid fuel might also in turn cause a decline in liquid fuel or vice versa. With this is mind, you can go out and target countries that have a significant amount of liquid or solid fuel, and hopefully implement policy to counteract these measures. 
+
+
+### Presentation 2:
+- Summary: Thomas' presentation was on the Miami housing market. He wanted to explore why the housing market in Miami is very expensive, and if there were certain features of the house that correlated to the house price. The first thing he looked at was a histogram of sale prices of houses in Miami. This gave an overall idea of how much houses were going for in Miami. He then looked at one correlation using a scatterplot of sale price and total floor area, and saw a positive correlation. He also looked at a boxplot of the age of a house and structure quality of a house. With these plots he was able to draw a conclusion that home price is somewhat strongly correlated to square footage of the house. 
+
+Plots:
+```{r}
+library(readr)
+miami <- read_csv("miami-housing.csv")
+ggplot(miami, aes(x=WATER_DIST, y=SALE_PRC))+ labs(x = "Distance from Water", y = "Sale Price", title = "Water Distance vs. Sale Price") + geom_point()+theme(plot.title=element_text(hjust=0.5))
+```
+
+- Explanation: Another factor that I feel like would influence sale price, especially in Miami, is the distance from water. Since Miami has nice weather year round, people who are looking for houses might be more inclined to live near water. From this scatterplot between the house price and distance from water we can see that prices of homes become less and less as you move further away from water. Since this seems to be a common trend, this would be a useful graphic in proving why housing prices are so high in Miami (due to the distance to the water). 

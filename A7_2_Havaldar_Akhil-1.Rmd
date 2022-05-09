@@ -1,0 +1,159 @@
+---
+title: "Assignment 7 - loess (4 pts)"
+author: "Group 2, Akhil Havaldar (ash2sfp)"
+date: "Due Date: 11:59pm, Feb 20"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  pdf_document:
+    toc: yes
+---
+
+```{=html}
+<style>
+h1.title {
+  font-size: 30px;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 22px;
+}
+h3 { 
+  font-size: 18px;
+}
+
+</style>
+```
+
+# Group Homework 
+
+- You will work with your group to complete this assignment.
+
+- *Submit your group's shared `.Rmd` AND "knitted"`.html` files*
+    
+    +  Your "knitted .html" submission must be created from your "group .Rmd" but be created on your own computer
+    
+    + Confirm this with the following comment included in your submission text box: **"Honor Pledge: I have recreated my group submission using using the tools I have installed on my own computer"**
+    
+    + Name the files with a group name and YOUR name for your submission
+
+*Each group member must be able to submit this assignment as created from their own computer. If only some members of the group submit the required files, those group members must additionally provide a supplemental explanation along with their submission as to why other students in their group have not completed this assignment.*
+
+
+# Part 1 
+
+- Use the SCS Data set you downloaded from Collab for Assignments 4 and 5, and then investigate the relationship between the mathematics achievement score (“mathpre”) and the math anxiety score (“mars”) by plotting the data and the path of means. 
+
+- Don't use package `ggplot2` for Part 1. Use `ggplot2` for Part 2.
+
+(1) Produce a scatterplot between “mathpre” and “mars” (you might consider using `jitter()` or `alpha()` for avoiding overlying points) and add a regression smoother using `loess()`. Compare the resulting plot to the plot you obtain by using `scatterplot()` from the `car`-package.
+ 
+```{r}
+# data cleaning
+library(car)
+library(haven)
+library(dplyr)
+scs <- read_sav("SCS_QE.sav")
+scs <- rename(scs, sex = male)
+scs$sex <- as.character(scs$sex)
+scs$sex <- recode(scs$sex, '1' = 'male', '0' = 'female')
+```
+
+
+```{r}
+# Regression Smoother with Loess
+plot(jitter(scs$mars, factor = 3), jitter(scs$mathpre, factor = 3), xlab = 'Math Anxiety', ylab = 'Math Pre=Test', main= 'Math Pre-Test vs. Math Anxiety', cex = .4, pch = 16) 
+
+x.val <- seq(25, 130, by = 10)
+
+out.lss1 <- loess(mathpre ~ mars, data = scs, span = .2, degree = 1)
+y.pred <- predict(out.lss1, data.frame(mars = x.val))
+lines(x.val, y.pred, col = 'blue', lwd = 2)
+```
+
+```{r}
+# Using Scatterplot from car package
+
+scatterplot(scs$mars, scs$mathpre, xlab = 'Math Anxiety', ylab= 'Math Pre-Test', main= 'Math Pre-Test vs. Math Anxiety')
+  
+```
+
+
+(2) Draw separate regression smoothers for female and male students (variable “male”). Use `loess()`.
+
+```{r}
+plot(jitter(scs$mars, factor = 3), jitter(scs$mathpre, factor = 3), xlab = 'Math Anxiety', ylab = 'Math Pre=Test', main= 'Math Pre-Test vs. Math Anxiety', cex = .4, pch = 16) 
+
+x.val <- seq(25, 130, by = 10)
+
+# model for men
+out.m <- loess(mathpre ~ mars, scs, subset = sex == 'male', 
+         span =.9, degree = 2)
+# model for women
+out.f <- loess(mathpre ~ mars, scs, subset = sex == 'female', 
+         span = .9, degree = 2)
+# men prediction
+lines(x.val, predict(out.m, x.val), col = 'blue', lwd = 2)
+# women prediction
+lines(x.val, predict(out.f, x.val), col = 'red', lwd = 2) 
+```
+
+
+(3) Describe the roles of regression smoothers in finding a relationship between math scores and math anxiety. 
+- The role of regressions smoothers in this scenario is to first draw a smooth regression line only based on certain values in the surrounding area. Once this is done, we can see certain trends from the smooth curve. For example, we can see that as math anxiety scores go up, the subsequent score on the pre-test decreases. And with the male vs female, this trend is more persistent with females. 
+
+
+# Part 2
+
+- Re-do **Part 1** using package `ggplot2`. That is, 
+
+(1) Produce a scatterplot (you might consider using `geom_jitter()` or the argument `alpha` from package `ggplot2` for avoiding overlying points) and add a regression smoother using `geom_smooth()`. 
+
+```{r}
+library(ggplot2)
+
+plot1 <- ggplot(scs, aes(jitter(mars, 3), jitter(mathpre, 3))) + geom_point() + geom_smooth(method = 'loess', formula = 'y ~ x', se = T) + labs(x = 'Math Anxiety Score', y = 'Math Pre-Test Score', 
+       title = 'Math Anxiety Score vs. Math Pre-Test Score') +
+   theme(plot.title = element_text(hjust=0.5))
+plot1
+```
+
+(2) Draw separate regression smoothers for female and male students (variable “male”). Use package `ggplot2`.
+
+```{r}
+plot2 <- ggplot(scs, aes(jitter(mars, 3), jitter(mathpre, 3), color=sex)) + geom_point() + geom_smooth(method = 'loess', formula = 'y ~ x', se = T) + labs(x = 'Math Anxiety Score', y = 'Math Pre-Test Score', title = 'Math Anxiety Score vs. Math Pre-Test Score') + theme(plot.title = element_text(hjust=0.5))
+plot2
+
+```
+
+
+# Part 3
+
+- Use a dataset in data repositories (e.g., [kaggle](https://www.kaggle.com/datasets)) that gives the measurements in different conditions like `iris` data. For more info on `iris` data, use `?iris`.
+
+- Briefly describe the dataset you're using for this assignment (e.g., means to access data, context, sample, variables, etc...).
+
+
+[Data Used](https://www.kaggle.com/yasserh/breast-cancer-dataset): We used a breast cancer data set from kaggle. The data set is a classification prediction for type of breast cancer in females. The dataset aims to classify tumors into a malignant (cancerous) or benign(non-cancerous) based on certain classifications. Some variables of the dataset include diagnosis (M-malignant, B-Benign), different measurements of the lobe ( radius, mean area, outer perimeter, mean of surface texture) and so on. For our plot we focused on means of compact, means of concavity, means of cocave points and mean of symmetry. 
+   
+- Transform the dataset from a wide to a long format. Produce any ggplot where the key variable is used in function `facet_grid` or `facet_wrap`.
+
+
+```{r}
+library(tidyr)
+library(ggplot2)
+cancerdata<- read.csv("breast-cancer.csv")
+cancerdatalong<-gather(cancerdata, key=cancerouse_attribute, value = measurement,
+                       compactness_mean:symmetry_mean)
+
+ggplot(cancerdatalong,aes(x=diagnosis, y=measurement)) + geom_boxplot()+
+  facet_grid(~cancerouse_attribute)+theme_bw()
+
+```
+
+
